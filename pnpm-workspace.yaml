@@ -1,0 +1,13 @@
+packages:
+  - backend
+  - frontend
+  - types
+
+onlyBuiltDependencies:
+  - '@ffmpeg-installer/linux-x64'
+  - '@ffprobe-installer/linux-x64'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - better-sqlite3
+  - esbuild
+  - prisma

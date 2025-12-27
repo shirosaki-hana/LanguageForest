@@ -1,0 +1,22 @@
+# Dist
+**/dist
+
+# Dependency directories
+node_modules/
+
+# dotenv environment variable files
+.env
+
+# Prisma
+*.db
+*.db-journal
+**/prismaclient/
+
+# media
+backend/media/
+backend/temp/
+backend/src/test/output
+
+# Docker
+docker-compose.override.yml
+docker-compose.local.yml

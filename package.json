@@ -1,0 +1,48 @@
+{
+  "name": "templateforest",
+  "private": true,
+  "version": "1.0.0",
+  "description": "A template for personal server applications with authentication, logging, and modern UI",
+  "keywords": [],
+  "author": "shirosaki-hana",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "dev:backend": "pnpm --filter backend run dev",
+    "dev:frontend": "pnpm --filter frontend run dev",
+    "build": "pnpm run build:types && pnpm run build:backend && pnpm run build:frontend",
+    "build:backend": "pnpm --filter backend run build",
+    "build:frontend": "pnpm --filter frontend run build",
+    "build:types": "pnpm --filter types run build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "pnpm -r run format",
+    "format:check": "pnpm -r run format:check",
+    "start": "pnpm --filter backend run start",
+    "clean": "pnpm --filter backend run clean && pnpm --filter frontend run clean && pnpm --filter types run clean",
+    "clean:cache": "pnpm --filter backend clean:cache",
+    "db:status": "pnpm --filter backend db:status",
+    "db:dev": "pnpm --filter backend db:dev",
+    "db:deploy": "pnpm --filter backend db:deploy",
+    "db:generate": "pnpm --filter backend db:generate",
+    "db:studio": "pnpm --filter backend db:studio",
+    "db:reset": "pnpm --filter backend db:reset"
+  },
+  "dependencies": {
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "concurrently": "^9.2.1",
+    "cpy-cli": "^6.0.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^16.5.0",
+    "prettier": "^3.7.4",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.0"
+  }
+}

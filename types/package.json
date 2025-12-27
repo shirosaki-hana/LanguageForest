@@ -1,0 +1,19 @@
+{
+  "name": "@templateforest/types",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared TypeScript types for TemplateForest",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && pnpm -w exec tsc -p types/tsconfig.json",
+    "clean": "rimraf dist"
+  }
+}
