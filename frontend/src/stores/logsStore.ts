@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { LogItem, LogLevel, LogCategory, LogSettings } from '@templateforest/types';
+import type { LogItem, LogLevel, LogCategory, LogSettings } from '@languageforest/types';
 import { getLogs, getLogStats, deleteLogs, getLogSettings, updateLogSettings, cleanupLogs } from '../api/logs';
 import { snackbar } from './snackbarStore';
 

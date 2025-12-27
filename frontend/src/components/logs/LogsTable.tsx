@@ -15,7 +15,7 @@ import {
   alpha,
 } from '@mui/material';
 import { ErrorOutline as ErrorIcon, Warning as WarningIcon, Info as InfoIcon, BugReport as DebugIcon } from '@mui/icons-material';
-import type { LogItem, LogLevel, LogCategory } from '@templateforest/types';
+import type { LogItem, LogLevel, LogCategory } from '@languageforest/types';
 
 // 로그 레벨 색상 및 아이콘
 const levelConfig: Record<LogLevel, { color: 'error' | 'warning' | 'info' | 'secondary'; icon: React.ReactElement }> = {

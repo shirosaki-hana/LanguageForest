@@ -2,7 +2,7 @@ export default {
   translation: {
     // Common
     common: {
-      appName: 'TemplateForest',
+      appName: 'LanguageForest',
       loading: '로딩 중...',
       error: '오류',
       success: '성공',

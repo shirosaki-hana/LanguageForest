@@ -1,5 +1,5 @@
 # =============================================================================
-# TemplateForest Dockerfile
+# LanguageForest Dockerfile
 # Multi-stage build for optimized production image
 # =============================================================================
 
@@ -124,7 +124,7 @@ RUN mkdir -p /app/data \
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4001
-ENV DATABASE_URL_SQLITE=file:/app/data/templateforest.db
+ENV DATABASE_URL_SQLITE=file:/app/data/languageforest.db
 
 # 포트 노출
 EXPOSE 4001

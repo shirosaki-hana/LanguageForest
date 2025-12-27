@@ -12,7 +12,7 @@ dotenv.config({ path: path.resolve(backendRoot, '.env'), quiet: true });
 dotenv.config({ path: path.resolve(backendRoot, '../.env'), quiet: true });
 
 // 환경변수에서 DB 경로 추출 (file: 접두어 제거 후 절대 경로로 변환)
-const dbUrlFromEnv = process.env.DATABASE_URL_SQLITE || 'file:./prisma/videoforest.db';
+const dbUrlFromEnv = process.env.DATABASE_URL_SQLITE || 'file:./prisma/languageforest.db';
 const dbRelativePath = dbUrlFromEnv.replace(/^file:/, '');
 const dbPath = path.resolve(backendRoot, dbRelativePath);
 const dbUrl = `file:${dbPath}`;

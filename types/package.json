@@ -1,9 +1,9 @@
 {
-  "name": "@templateforest/types",
+  "name": "@languageforest/types",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Shared TypeScript types for TemplateForest",
+  "description": "Shared TypeScript types for languageforest",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

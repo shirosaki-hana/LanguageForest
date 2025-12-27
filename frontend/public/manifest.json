@@ -1,6 +1,6 @@
 {
-  "name": "VideoForest",
-  "short_name": "VideoForest",
+  "name": "LanguageForest",
+  "short_name": "LanguageForest",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

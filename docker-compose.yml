@@ -1,5 +1,5 @@
 # =============================================================================
-# TemplateForest Docker Compose Configuration
+# LanguageForest Docker Compose Configuration
 # =============================================================================
 # Usage:
 # docker compose up -d        # Start services (background)
@@ -9,11 +9,11 @@
 # =============================================================================
 
 services:
-  templateforest:
+  languageforest:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: templateforest
+    container_name: languageforest
     restart: unless-stopped
     ports:
       - "${PORT:-4001}:4001"
@@ -21,7 +21,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - HOST=0.0.0.0
       - PORT=4001
-      - DATABASE_URL_SQLITE=file:/app/data/templateforest.db
+      - DATABASE_URL_SQLITE=file:/app/data/languageforest.db
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4001}
       - SESSION_TTL=${SESSION_TTL:-24h}
       - SESSION_COOKIE=${SESSION_COOKIE:-session}
@@ -29,7 +29,7 @@ services:
       - RATELIMIT_WINDOWMS=${RATELIMIT_WINDOWMS:-10s}
     volumes:
       # SQLite Database Persistence
-      - templateforest-data:/app/data
+      - languageforest-data:/app/data
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:4001/api/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -46,5 +46,5 @@ services:
 # Named Volumes
 # -----------------------------------------------------------------------------
 volumes:
-  templateforest-data:
-    name: templateforest-data
+  languageforest-data:
+    name: languageforest-data

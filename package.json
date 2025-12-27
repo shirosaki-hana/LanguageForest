@@ -1,8 +1,8 @@
 {
-  "name": "templateforest",
+  "name": "languageforest",
   "private": true,
   "version": "1.0.0",
-  "description": "A template for personal server applications with authentication, logging, and modern UI",
+  "description": "",
   "keywords": [],
   "author": "shirosaki-hana",
   "license": "MIT",
