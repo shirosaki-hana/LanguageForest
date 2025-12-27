@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { checkAuthStatus, setupPassword, login as apiLogin, logout as apiLogout } from '../api/auth';
-import type { SetupPasswordRequest, LoginRequest } from '@languageforest/types';
+import type { SetupPasswordRequest, LoginRequest } from '@languageforest/sharedtype';
 import { snackbar } from './snackbarStore';
 
 interface AuthState {

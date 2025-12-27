@@ -1,7 +1,8 @@
 packages:
   - backend
   - frontend
-  - types
+  - packages/sharedtype
+  - packages/gemma-tokenizer
 
 onlyBuiltDependencies:
   - '@prisma/client'

@@ -6,7 +6,7 @@ import {
   LogoutResponseSchema,
   SetupPasswordRequestSchema,
   SetupPasswordResponseSchema,
-} from '@languageforest/types';
+} from '@languageforest/sharedtype';
 import { env } from '../config/index.js';
 import { authenticateByToken, getCookieOptions, isPasswordSetup, login, logoutByToken, setupPassword } from '../services/auth.js';
 import { logger, getRequestMeta } from '../utils/index.js';

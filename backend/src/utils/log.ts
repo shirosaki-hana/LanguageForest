@@ -1,4 +1,4 @@
-import type { LogLevel, LogCategory } from '@languageforest/types';
+import type { LogLevel, LogCategory } from '@languageforest/sharedtype';
 
 //------------------------------------------------------------------------------//
 // DB 저장 함수 (지연 로딩으로 순환 참조 방지)

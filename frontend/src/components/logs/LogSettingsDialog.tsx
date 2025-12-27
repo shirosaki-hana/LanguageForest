@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from '@mui/material';
-import type { LogSettings } from '@languageforest/types';
+import type { LogSettings } from '@languageforest/sharedtype';
 
 interface LogSettingsDialogProps {
   open: boolean;

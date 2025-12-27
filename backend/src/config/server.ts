@@ -2,7 +2,7 @@ import path from 'path';
 import ms from 'ms';
 import { env, isDevelopment, isProduction } from './env.js';
 import { projectRoot, logger } from '../utils/index.js';
-import type { LogLevel } from '@languageforest/types';
+import type { LogLevel } from '@languageforest/sharedtype';
 //------------------------------------------------------------------------------//
 // Pino 레벨 -> 프로젝트 레벨 매핑
 const pinoLevelToLogLevel = (level: number): LogLevel => {

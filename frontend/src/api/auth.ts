@@ -6,8 +6,8 @@ import type {
   LoginRequest,
   LoginResponse,
   LogoutResponse,
-} from '@languageforest/types';
-import { AuthStatusResponseSchema, SetupPasswordResponseSchema, LoginResponseSchema, LogoutResponseSchema } from '@languageforest/types';
+} from '@languageforest/sharedtype';
+import { AuthStatusResponseSchema, SetupPasswordResponseSchema, LoginResponseSchema, LogoutResponseSchema } from '@languageforest/sharedtype';
 import { z } from 'zod';
 
 // 타입 가드를 위한 검증 헬퍼

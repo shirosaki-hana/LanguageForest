@@ -1,0 +1,19 @@
+{
+  "name": "@languageforest/sharedtype",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "pnpm clean && pnpm -w exec tsc -p packages/sharedtype/tsconfig.json",
+    "clean": "rimraf dist"
+  }
+}

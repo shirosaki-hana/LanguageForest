@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Box, Button, Card, CardContent, FormControl, InputAdornment, InputLabel, MenuItem, Select, TextField } from '@mui/material';
 import { Search as SearchIcon, Delete as DeleteIcon, FilterList as FilterIcon } from '@mui/icons-material';
-import { LogLevelSchema, LogCategorySchema, type LogLevel, type LogCategory } from '@languageforest/types';
+import { LogLevelSchema, LogCategorySchema, type LogLevel, type LogCategory } from '@languageforest/sharedtype';
 
 interface LogsFilterProps {
   search: string;

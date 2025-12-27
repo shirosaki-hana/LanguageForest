@@ -1,6 +1,6 @@
 import { database } from '../database/index.js';
 import { setLogDbSaver } from '../utils/log.js';
-import type { LogLevel, LogCategory, GetLogsRequest, LogSettings } from '@languageforest/types';
+import type { LogLevel, LogCategory, GetLogsRequest, LogSettings } from '@languageforest/sharedtype';
 
 //------------------------------------------------------------------------------//
 // 로그 DB 저장 함수

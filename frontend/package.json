@@ -25,7 +25,7 @@
     "@mui/material": "^7.3.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@languageforest/types": "workspace:*",
+    "@languageforest/sharedtype": "workspace:*",
     "axios": "^1.13.2",
     "i18next": "^25.7.3",
     "react": "^19.2.3",

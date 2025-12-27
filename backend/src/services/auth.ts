@@ -4,8 +4,8 @@ import type { CookieSerializeOptions } from '@fastify/cookie';
 import ms from 'ms';
 import { database } from '../database/index.js';
 import { env, isProduction } from '../config/index.js';
-import type { LoginRequest, SetupPasswordRequest } from '@languageforest/types';
-import { LoginRequestSchema, SetupPasswordRequestSchema } from '@languageforest/types';
+import type { LoginRequest, SetupPasswordRequest } from '@languageforest/sharedtype';
+import { LoginRequestSchema, SetupPasswordRequestSchema } from '@languageforest/sharedtype';
 //------------------------------------------------------------------------------//
 const SESSION_TTL_MS = ms(env.SESSION_TTL);
 

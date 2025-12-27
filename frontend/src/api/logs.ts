@@ -8,14 +8,14 @@ import type {
   LogSettings,
   GetLogSettingsResponse,
   UpdateLogSettingsResponse,
-} from '@languageforest/types';
+} from '@languageforest/sharedtype';
 import {
   GetLogsResponseSchema,
   LogStatsResponseSchema,
   DeleteLogsResponseSchema,
   GetLogSettingsResponseSchema,
   UpdateLogSettingsResponseSchema,
-} from '@languageforest/types';
+} from '@languageforest/sharedtype';
 import { z } from 'zod';
 
 // 타입 가드를 위한 검증 헬퍼

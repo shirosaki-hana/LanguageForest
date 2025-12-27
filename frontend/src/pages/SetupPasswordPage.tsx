@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Box, Button } from '@mui/material';
 import { Lock } from '@mui/icons-material';
 import { useAuthStore } from '../stores/authStore';
-import { PasswordSchema } from '@languageforest/types';
+import { PasswordSchema } from '@languageforest/sharedtype';
 import AuthPageLayout from '../components/common/AuthPageLayout';
 import PasswordField from '../components/common/PasswordField';
 import { snackbar } from '../stores/snackbarStore';

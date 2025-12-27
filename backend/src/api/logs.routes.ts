@@ -8,7 +8,7 @@ import {
   GetLogSettingsResponseSchema,
   LogSettingsSchema,
   UpdateLogSettingsResponseSchema,
-} from '@languageforest/types';
+} from '@languageforest/sharedtype';
 import { getLogs, getLogStats, deleteLogs, cleanupOldLogs } from '../services/logs.js';
 import { requireAuth } from '../middleware/auth.js';
 
