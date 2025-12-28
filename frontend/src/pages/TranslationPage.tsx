@@ -46,6 +46,8 @@ export default function TranslationPage() {
     isPaused,
     isUploading,
     config,
+    models,
+    modelsLoading,
     templates,
     selectedTemplateId,
     loadSessions,
@@ -63,6 +65,7 @@ export default function TranslationPage() {
     resumeTranslation,
     loadConfig,
     updateConfig,
+    loadModels,
     loadTemplates,
     selectTemplate,
     connectWs,
@@ -318,7 +321,15 @@ export default function TranslationPage() {
       />
 
       {/* 설정 다이얼로그 */}
-      <ConfigDialog open={configDialogOpen} config={config} onClose={() => setConfigDialogOpen(false)} onSave={updateConfig} />
+      <ConfigDialog
+        open={configDialogOpen}
+        config={config}
+        models={models}
+        modelsLoading={modelsLoading}
+        onClose={() => setConfigDialogOpen(false)}
+        onSave={updateConfig}
+        onLoadModels={loadModels}
+      />
     </Box>
   );
 }

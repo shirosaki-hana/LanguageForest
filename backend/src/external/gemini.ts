@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import axios, { AxiosError } from 'axios';
 import { env, type GeminiSafetySetting } from '../config/env.js';
+import { logger } from '../utils/log.js';
+import { getModelById, type ThinkingConfig } from '../config/models.js';
 
 // ============================================
 // Gemini API 타입 정의 (Zod 스키마)
@@ -19,6 +21,17 @@ export const GeminiContentSchema = z.object({
 });
 export type GeminiContent = z.infer<typeof GeminiContentSchema>;
 
+/**
+ * thinkingConfig 스키마 (Gemini API용)
+ * - Gemini 3.x: thinkingLevel 사용
+ * - Gemini 2.5 이하: thinkingBudget 사용
+ */
+export const GeminiThinkingConfigSchema = z.union([
+  z.object({ thinkingBudget: z.number().int().min(0) }),
+  z.object({ thinkingLevel: z.enum(['minimal', 'low', 'medium', 'high']) }),
+]);
+export type GeminiThinkingConfig = z.infer<typeof GeminiThinkingConfigSchema>;
+
 export const GeminiGenerationConfigSchema = z.object({
   maxOutputTokens: z.number().int().positive().optional(),
   temperature: z.number().min(0).max(2).optional(),
@@ -26,6 +39,7 @@ export const GeminiGenerationConfigSchema = z.object({
   frequencyPenalty: z.number().nullable().optional(),
   topP: z.number().min(0).max(1).optional(),
   topK: z.number().int().positive().optional(),
+  thinkingConfig: GeminiThinkingConfigSchema.optional(),
 });
 export type GeminiGenerationConfig = z.infer<typeof GeminiGenerationConfigSchema>;
 
@@ -135,10 +149,30 @@ export class GeminiClient {
   }
 
   /**
+   * 모델의 thinkingConfig를 Gemini API 형식으로 변환
+   */
+  private buildThinkingConfig(config: ThinkingConfig): GeminiThinkingConfig {
+    if (config.type === 'budget') {
+      return { thinkingBudget: config.budget };
+    } else {
+      return { thinkingLevel: config.level };
+    }
+  }
+
+  /**
    * Gemini API 호출
    */
   async generateContent(request: GeminiRequest): Promise<GeminiResponse> {
+    const requestId = crypto.randomUUID();
+    const startTime = Date.now();
     const url = `${GEMINI_API_BASE}/${this.model}:generateContent?key=${this.apiKey}`;
+    const urlWithoutKey = `${GEMINI_API_BASE}/${this.model}:generateContent`;
+
+    // 모델 정보에서 thinkingConfig 가져오기
+    const modelInfo = getModelById(this.model);
+    const thinkingConfig = modelInfo?.thinkingConfig
+      ? this.buildThinkingConfig(modelInfo.thinkingConfig)
+      : undefined;
 
     // 요청 병합 (safetySettings, generationConfig 기본값 적용)
     const mergedRequest: GeminiRequest = {
@@ -146,12 +180,31 @@ export class GeminiClient {
       generationConfig: {
         ...this.defaultGenerationConfig,
         ...request.generationConfig,
+        // 모델별 thinkingConfig 자동 적용
+        ...(thinkingConfig && { thinkingConfig }),
       },
       safetySettings: request.safetySettings ?? this.safetySettings,
     };
 
     // 요청 검증
     const validatedRequest = GeminiRequestSchema.parse(mergedRequest);
+
+    // 요청 로깅
+    logger.info('external_api', 'Gemini API request started', {
+      requestId,
+      provider: 'gemini',
+      model: this.model,
+      endpoint: urlWithoutKey,
+      method: 'POST',
+      request: {
+        contentsLength: validatedRequest.contents.length,
+        contents: validatedRequest.contents,
+        generationConfig: validatedRequest.generationConfig,
+        safetySettings: validatedRequest.safetySettings,
+        systemInstruction: validatedRequest.systemInstruction,
+      },
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       const response = await axios.post<GeminiResponse>(url, validatedRequest, {
@@ -161,14 +214,77 @@ export class GeminiClient {
         timeout: 120000, // 2분 타임아웃
       });
 
+      const endTime = Date.now();
+      const durationMs = endTime - startTime;
+
       // 응답 검증
-      return GeminiResponseSchema.parse(response.data);
+      const validatedResponse = GeminiResponseSchema.parse(response.data);
+
+      // 성공 응답 로깅
+      logger.info('external_api', 'Gemini API request successful', {
+        requestId,
+        provider: 'gemini',
+        model: this.model,
+        endpoint: urlWithoutKey,
+        method: 'POST',
+        httpStatus: response.status,
+        httpStatusText: response.statusText,
+        durationMs,
+        response: {
+          modelVersion: validatedResponse.modelVersion,
+          responseId: validatedResponse.responseId,
+          candidatesCount: validatedResponse.candidates.length,
+          candidates: validatedResponse.candidates,
+          finishReason: validatedResponse.candidates[0]?.finishReason,
+        },
+        usage: {
+          promptTokenCount: validatedResponse.usageMetadata.promptTokenCount,
+          candidatesTokenCount: validatedResponse.usageMetadata.candidatesTokenCount,
+          totalTokenCount: validatedResponse.usageMetadata.totalTokenCount,
+          promptTokensDetails: validatedResponse.usageMetadata.promptTokensDetails,
+        },
+        responseHeaders: {
+          contentType: response.headers['content-type'],
+          contentLength: response.headers['content-length'],
+        },
+        timestamp: new Date().toISOString(),
+      });
+
+      return validatedResponse;
     } catch (error) {
+      const endTime = Date.now();
+      const durationMs = endTime - startTime;
+
       if (error instanceof AxiosError) {
         const errorData = error.response?.data;
 
         // Gemini API 에러 응답 파싱 시도
         const parsed = GeminiErrorResponseSchema.safeParse(errorData);
+        
+        // 에러 로깅
+        logger.error('external_api', 'Gemini API request failed', {
+          requestId,
+          provider: 'gemini',
+          model: this.model,
+          endpoint: urlWithoutKey,
+          method: 'POST',
+          durationMs,
+          error: {
+            type: 'AxiosError',
+            code: error.code,
+            message: error.message,
+            httpStatus: error.response?.status,
+            httpStatusText: error.response?.statusText,
+            responseData: errorData,
+            parsedError: parsed.success ? parsed.data.error : null,
+          },
+          request: {
+            contentsLength: validatedRequest.contents.length,
+            generationConfig: validatedRequest.generationConfig,
+          },
+          timestamp: new Date().toISOString(),
+        });
+
         if (parsed.success) {
           throw new GeminiAPIError(parsed.data.error.message, parsed.data.error.code, parsed.data.error.status);
         }
@@ -178,6 +294,25 @@ export class GeminiClient {
       }
 
       // Zod 검증 에러 등
+      logger.error('external_api', 'Gemini API request failed (non-HTTP error)', {
+        requestId,
+        provider: 'gemini',
+        model: this.model,
+        endpoint: urlWithoutKey,
+        method: 'POST',
+        durationMs,
+        error: {
+          type: error instanceof Error ? error.constructor.name : 'Unknown',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        request: {
+          contentsLength: validatedRequest.contents.length,
+          generationConfig: validatedRequest.generationConfig,
+        },
+        timestamp: new Date().toISOString(),
+      });
+
       throw error;
     }
   }

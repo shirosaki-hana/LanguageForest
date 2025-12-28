@@ -20,6 +20,8 @@ import type {
   FileUploadResponse,
   // Pagination
   PaginatedChunksResponse,
+  // Models
+  GeminiModelInfo,
 } from '@languageforest/sharedtype';
 
 // ============================================
@@ -28,6 +30,15 @@ import type {
 
 export async function getProvider(): Promise<GetProviderResponse> {
   const { data } = await apiClient.get<GetProviderResponse>('/translation/provider');
+  return data;
+}
+
+// ============================================
+// 모델 목록
+// ============================================
+
+export async function listModels(): Promise<GeminiModelInfo[]> {
+  const { data } = await apiClient.get<GeminiModelInfo[]>('/translation/models');
   return data;
 }
 

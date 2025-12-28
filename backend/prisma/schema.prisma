@@ -49,10 +49,17 @@ model Log {
 
 // 전역 설정 - 싱글톤 패턴 (id=1 고정)
 model TranslationConfig {
-  id        Int      @id @default(1)
-  model     String   
-  chunkSize Int      @default(2000)          // 목표 문자수
-  updatedAt DateTime @updatedAt
+  id              Int      @id @default(1)
+  model           String   @default("gemini-2.5-flash")
+  chunkSize       Int      @default(2000)          // 목표 문자수
+  
+  // GenerationConfig 필드들
+  temperature     Float    @default(1.0)           // 생성 온도 (0.0 ~ 2.0)
+  maxOutputTokens Int?                              // 최대 출력 토큰 수
+  topP            Float?                            // Top-P 샘플링 (0.0 ~ 1.0)
+  topK            Int?                              // Top-K 샘플링
+  
+  updatedAt       DateTime @updatedAt
 
   @@map("translation_config")
 }

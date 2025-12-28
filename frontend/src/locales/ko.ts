@@ -114,6 +114,7 @@ export default {
         system: '시스템',
         database: 'DB',
         server: '서버',
+        external_api: '외부 API',
       },
       errors: {
         loadFailed: '로그를 불러오는데 실패했습니다',
@@ -203,6 +204,7 @@ export default {
       actions: '작업',
       retryChunk: '청크 재시도',
       translateChunk: '청크 번역',
+      retranslateChunk: '재번역',
 
       // Controls
       startTranslation: '번역 시작',
@@ -221,6 +223,16 @@ export default {
       characters: '자',
       chunkSizeHelp: '청크가 클수록 문맥을 더 잘 이해하지만, 오류 발생 시 재시도 비용이 커집니다',
       configUpdated: '설정이 저장되었습니다',
+      advancedSettings: '고급 설정',
+      temperature: '온도 (Temperature)',
+      temperatureHelp: '높을수록 창의적이고 다양한 출력, 낮을수록 일관되고 예측 가능한 출력이 됩니다',
+      maxOutputTokens: '최대 출력 토큰',
+      maxOutputTokensHelp: '생성할 수 있는 최대 토큰 수입니다. 비워두면 모델 기본값을 사용합니다',
+      topPHelp: '누적 확률 기반 샘플링. 낮을수록 다양성이 줄어듭니다',
+      topKHelp: '상위 K개 토큰에서만 샘플링. 비워두면 비활성화됩니다',
+      default: '기본값',
+      enable: '활성화',
+      useDefault: '기본값 사용',
 
       // Session Status
       sessionStatus: {
@@ -252,6 +264,7 @@ export default {
         retryFailed: '재시도에 실패했습니다',
         loadConfigFailed: '설정을 불러오는데 실패했습니다',
         updateConfigFailed: '설정 저장에 실패했습니다',
+        loadModelsFailed: '모델 목록을 불러오는데 실패했습니다',
         loadTemplatesFailed: '템플릿 목록을 불러오는데 실패했습니다',
         uploadFailed: '파일 업로드에 실패했습니다',
         downloadFailed: '다운로드에 실패했습니다',

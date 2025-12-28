@@ -149,6 +149,13 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
                 </IconButton>
               </Tooltip>
             )}
+            {chunk.status === 'completed' && (
+              <Tooltip title={t('translation.retranslateChunk')}>
+                <IconButton size='small' onClick={e => { e.stopPropagation(); onTranslate(); }} disabled={isTranslating}>
+                  <RetryIcon fontSize='small' />
+                </IconButton>
+              </Tooltip>
+            )}
             <IconButton size='small'>
               {expanded ? <CollapseIcon fontSize='small' /> : <ExpandIcon fontSize='small' />}
             </IconButton>

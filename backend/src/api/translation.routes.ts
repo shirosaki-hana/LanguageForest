@@ -13,6 +13,7 @@ import {
   GetSessionChunksQuerySchema,
 } from '@languageforest/sharedtype';
 import { getGeminiClient } from '../external/gemini.js';
+import { GEMINI_MODELS } from '../config/models.js';
 import {
   // Config
   getTranslationConfig,
@@ -60,6 +61,11 @@ export const translationRoutes: FastifyPluginAsync = async fastify => {
       model: client.modelName,
       status: 'ready',
     };
+  });
+
+  // GET /models - 사용 가능한 모델 목록
+  fastify.get('/models', async () => {
+    return GEMINI_MODELS;
   });
 
   // ==========================================

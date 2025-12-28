@@ -6,9 +6,11 @@ import type {
   ProgressInfo,
   CreateSessionRequest,
   UpdateSessionRequest,
+  UpdateTranslationConfigRequest,
   WsServerEvent,
   PromptTemplate,
   TranslationChunkStatus,
+  GeminiModelInfo,
 } from '@languageforest/sharedtype';
 import * as api from '../api/translation';
 import { translationWs } from '../api/websocket';
@@ -52,6 +54,10 @@ interface TranslationState {
   // 전역 설정
   config: TranslationConfig | null;
 
+  // 모델 목록
+  models: GeminiModelInfo[];
+  modelsLoading: boolean;
+
   // WebSocket 상태
   wsConnected: boolean;
 
@@ -83,7 +89,8 @@ interface TranslationState {
 
   // 설정
   loadConfig: () => Promise<void>;
-  updateConfig: (data: { model?: string; chunkSize?: number }) => Promise<void>;
+  updateConfig: (data: UpdateTranslationConfigRequest) => Promise<void>;
+  loadModels: () => Promise<void>;
   loadTemplates: () => Promise<void>;
   selectTemplate: (id: string) => void;
 
@@ -174,6 +181,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
     isUploading: false,
     uploadError: null,
     config: null,
+    models: [],
+    modelsLoading: false,
     wsConnected: false,
     templates: [],
     templatesLoading: false,
@@ -500,6 +509,18 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
       }
     },
 
+    // 모델 목록 로드
+    loadModels: async () => {
+      set({ modelsLoading: true });
+      try {
+        const models = await api.listModels();
+        set({ models, modelsLoading: false });
+      } catch {
+        snackbar.error('translation.errors.loadModelsFailed', true);
+        set({ modelsLoading: false });
+      }
+    },
+
     // 템플릿 목록 로드
     loadTemplates: async () => {
       set({ templatesLoading: true });
@@ -556,6 +577,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
         isUploading: false,
         uploadError: null,
         config: null,
+        models: [],
+        modelsLoading: false,
         wsConnected: false,
         templates: [],
         templatesLoading: false,

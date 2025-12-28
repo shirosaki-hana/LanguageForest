@@ -92,7 +92,7 @@ export const getLogs = async (params: GetLogsRequest) => {
 // 로그 통계
 // 모든 레벨과 카테고리에 대해 기본값 0을 설정 (Zod 스키마 검증을 위해)
 const ALL_LEVELS = ['ERROR', 'WARN', 'INFO', 'DEBUG'] as const;
-const ALL_CATEGORIES = ['api', 'auth', 'system', 'database', 'server'] as const;
+const ALL_CATEGORIES = ['api', 'auth', 'system', 'database', 'server', 'external_api'] as const;
 
 export const getLogStats = async () => {
   const now = new Date();

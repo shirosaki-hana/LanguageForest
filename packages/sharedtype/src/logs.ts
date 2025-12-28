@@ -5,7 +5,7 @@ export const LogLevelSchema = z.enum(['ERROR', 'WARN', 'INFO', 'DEBUG']);
 export type LogLevel = z.infer<typeof LogLevelSchema>;
 
 // 로그 카테고리 스키마
-export const LogCategorySchema = z.enum(['api', 'auth', 'system', 'database', 'server']);
+export const LogCategorySchema = z.enum(['api', 'auth', 'system', 'database', 'server', 'external_api']);
 export type LogCategory = z.infer<typeof LogCategorySchema>;
 
 // 단일 로그 항목 스키마

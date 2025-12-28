@@ -114,6 +114,7 @@ export default {
         system: 'System',
         database: 'DB',
         server: 'Server',
+        external_api: 'External API',
       },
       errors: {
         loadFailed: 'Failed to load logs',
@@ -203,6 +204,7 @@ export default {
       actions: 'Actions',
       retryChunk: 'Retry Chunk',
       translateChunk: 'Translate Chunk',
+      retranslateChunk: 'Retranslate',
 
       // Controls
       startTranslation: 'Start Translation',
@@ -221,6 +223,16 @@ export default {
       characters: 'chars',
       chunkSizeHelp: 'Larger chunks preserve more context, but increase retry cost on errors',
       configUpdated: 'Settings saved',
+      advancedSettings: 'Advanced Settings',
+      temperature: 'Temperature',
+      temperatureHelp: 'Higher values produce more creative and diverse outputs, lower values produce more consistent and predictable outputs',
+      maxOutputTokens: 'Max Output Tokens',
+      maxOutputTokensHelp: 'Maximum number of tokens to generate. Leave empty to use model default',
+      topPHelp: 'Cumulative probability sampling. Lower values reduce diversity',
+      topKHelp: 'Sample from top K tokens only. Leave empty to disable',
+      default: 'Default',
+      enable: 'Enable',
+      useDefault: 'Use Default',
 
       // Session Status
       sessionStatus: {
@@ -252,6 +264,7 @@ export default {
         retryFailed: 'Retry failed',
         loadConfigFailed: 'Failed to load settings',
         updateConfigFailed: 'Failed to save settings',
+        loadModelsFailed: 'Failed to load models',
         loadTemplatesFailed: 'Failed to load templates',
         uploadFailed: 'File upload failed',
         downloadFailed: 'Download failed',

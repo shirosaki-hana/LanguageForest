@@ -1,5 +1,5 @@
 import { database } from '../database/index.js';
-import { getGeminiClient, type GeminiClient } from '../external/gemini.js';
+import { GeminiClient, type GeminiGenerationConfig } from '../external/gemini.js';
 import { buildPromptFromDB } from '../translation/promptBuilder.js';
 import { splitIntoChunks } from '../translation/chunker.js';
 import type { ChunkInfo } from '../translation/promptBuilder.js';
@@ -7,6 +7,7 @@ import type { TranslationSession, TranslationChunk, TranslationConfig } from '..
 import { emitChunkStart, emitChunkProgress, emitSessionStatus, emitSessionComplete } from './translationEvents.js';
 import { templateService } from './templateService.js';
 import { logger } from '../utils/index.js';
+import { DEFAULT_MODEL_ID } from '../config/models.js';
 
 // ============================================
 // 타입 정의
@@ -54,8 +55,10 @@ export async function getTranslationConfig(): Promise<TranslationConfig> {
     config = await database.translationConfig.create({
       data: {
         id: 1,
-        model: 'gpt-4o-mini',
+        model: DEFAULT_MODEL_ID,
         chunkSize: 2000,
+        temperature: 1.0,
+        maxOutputTokens: 32000,
       },
     });
   }
@@ -66,15 +69,43 @@ export async function getTranslationConfig(): Promise<TranslationConfig> {
 /**
  * 전역 번역 설정 업데이트
  */
-export async function updateTranslationConfig(data: { model?: string; chunkSize?: number }): Promise<TranslationConfig> {
+export async function updateTranslationConfig(data: {
+  model?: string;
+  chunkSize?: number;
+  temperature?: number;
+  maxOutputTokens?: number;
+  topP?: number;
+  topK?: number;
+}): Promise<TranslationConfig> {
   return database.translationConfig.upsert({
     where: { id: 1 },
     update: data,
     create: {
       id: 1,
-      model: data.model ?? 'gpt-4o-mini',
+      model: data.model ?? DEFAULT_MODEL_ID,
       chunkSize: data.chunkSize ?? 2000,
+      temperature: data.temperature ?? 1.0,
+      maxOutputTokens: data.maxOutputTokens ?? 32000,
+      topP: data.topP,
+      topK: data.topK,
     },
+  });
+}
+
+/**
+ * Config에서 GeminiClient 생성
+ */
+function createGeminiClientFromConfig(config: TranslationConfig): GeminiClient {
+  const generationConfig: GeminiGenerationConfig = {
+    temperature: config.temperature,
+    maxOutputTokens: config.maxOutputTokens ?? undefined,
+    topP: config.topP ?? undefined,
+    topK: config.topK ?? undefined,
+  };
+
+  return new GeminiClient({
+    model: config.model,
+    defaultGenerationConfig: generationConfig,
   });
 }
 
@@ -534,9 +565,9 @@ export async function translateChunk(chunkId: string, options: { templateId: str
     orderBy: { order: 'asc' },
   });
 
-  // 설정 조회
+  // 설정 조회 및 클라이언트 생성
   const config = await getTranslationConfig();
-  const client = getGeminiClient();
+  const client = createGeminiClientFromConfig(config);
 
   // customDict 오버라이드 적용
   const sessionWithOverride = options?.customDict ? { ...chunk.session, customDict: options.customDict } : chunk.session;
@@ -603,9 +634,9 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
     return [];
   }
 
-  // 설정을 한 번만 조회
+  // 설정을 한 번만 조회하고 클라이언트 생성
   const config = await getTranslationConfig();
-  const client = getGeminiClient();
+  const client = createGeminiClientFromConfig(config);
   const template = promptTemplate.content;
 
   const results: ChunkResult[] = [];

@@ -23,6 +23,38 @@ export const TranslationChunkStatusSchema = z.enum([
 export type TranslationChunkStatus = z.infer<typeof TranslationChunkStatusSchema>;
 
 // ============================================
+// Gemini 모델 정보
+// ============================================
+
+export const GeminiModelInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  maxOutputTokens: z.number().int().positive(),
+  defaultTemperature: z.number().min(0).max(2),
+  contextWindow: z.number().int().positive(),
+  isExperimental: z.boolean().default(false),
+});
+export type GeminiModelInfo = z.infer<typeof GeminiModelInfoSchema>;
+
+// GET /models 응답
+export const ListModelsResponseSchema = z.array(GeminiModelInfoSchema);
+export type ListModelsResponse = z.infer<typeof ListModelsResponseSchema>;
+
+// ============================================
+// GenerationConfig (LLM 생성 설정)
+// ============================================
+
+export const GenerationConfigSchema = z.object({
+  temperature: z.number().min(0).max(2).default(1.0),
+  maxOutputTokens: z.number().int().positive().optional(),
+  topP: z.number().min(0).max(1).optional(),
+  topK: z.number().int().positive().optional(),
+  presencePenalty: z.number().min(-2).max(2).optional(),
+  frequencyPenalty: z.number().min(-2).max(2).optional(),
+});
+export type GenerationConfig = z.infer<typeof GenerationConfigSchema>;
+
+// ============================================
 // 전역 설정 (TranslationConfig)
 // ============================================
 
@@ -30,6 +62,10 @@ export const TranslationConfigSchema = z.object({
   id: z.number().int(),
   model: z.string(),
   chunkSize: z.number().int(),
+  temperature: z.number().min(0).max(2).default(1.0),
+  maxOutputTokens: z.number().int().positive().optional(),
+  topP: z.number().min(0).max(1).optional(),
+  topK: z.number().int().positive().optional(),
   updatedAt: z.string(), // ISO 8601
 });
 export type TranslationConfig = z.infer<typeof TranslationConfigSchema>;
@@ -42,6 +78,10 @@ export type GetTranslationConfigResponse = z.infer<typeof GetTranslationConfigRe
 export const UpdateTranslationConfigRequestSchema = z.object({
   model: z.string().optional(),
   chunkSize: z.number().int().min(100).max(10000).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  maxOutputTokens: z.number().int().positive().optional(),
+  topP: z.number().min(0).max(1).optional(),
+  topK: z.number().int().positive().optional(),
 });
 export type UpdateTranslationConfigRequest = z.infer<typeof UpdateTranslationConfigRequestSchema>;
 
