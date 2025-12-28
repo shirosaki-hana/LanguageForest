@@ -8,7 +8,7 @@ export const apiRoutes: FastifyPluginAsync = async fastify => {
   await fastify.register(authRoutes, { prefix: '/auth' });
   await fastify.register(healthRoutes, { prefix: '/health' });
   await fastify.register(logsRoutes, { prefix: '/logs' });
-  await fastify.register(translationRoutes, { prefix: '/llm' });
+  await fastify.register(translationRoutes, { prefix: '/translation' });
 };
 
 export default apiRoutes;

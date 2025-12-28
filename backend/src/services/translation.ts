@@ -495,7 +495,7 @@ export async function translateAllPendingChunks(sessionId: string, options?: { t
       finalStatus = 'completed';
     }
 
-    const updatedSession = await database.translationSession.update({
+    await database.translationSession.update({
       where: { id: sessionId },
       data: { status: finalStatus },
     });

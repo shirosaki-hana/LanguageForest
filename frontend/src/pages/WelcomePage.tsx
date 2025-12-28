@@ -1,6 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { Box, Container, Paper, Stack, Typography, Button, IconButton } from '@mui/material';
-import { Home as HomeIcon, Logout as LogoutIcon, Settings as SettingsIcon, Terminal as TerminalIcon } from '@mui/icons-material';
+import {
+  Home as HomeIcon,
+  Logout as LogoutIcon,
+  Settings as SettingsIcon,
+  Terminal as TerminalIcon,
+  Translate as TranslateIcon,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -89,7 +95,10 @@ export default function WelcomePage() {
             </Paper>
 
             {/* 빠른 링크 */}
-            <Stack direction='row' spacing={2}>
+            <Stack direction='row' spacing={2} flexWrap='wrap' justifyContent='center'>
+              <Button variant='contained' startIcon={<TranslateIcon />} onClick={() => navigate('/translation')} size='large'>
+                {t('translation.title')}
+              </Button>
               <Button variant='outlined' startIcon={<TerminalIcon />} onClick={() => navigate('/logs')} size='large'>
                 {t('logs.title')}
               </Button>

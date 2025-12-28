@@ -12,6 +12,12 @@ export default {
       refresh: '새로고침',
       saving: '저장 중...',
       rowsPerPage: '페이지당 행',
+      back: '뒤로',
+      edit: '수정',
+      delete: '삭제',
+      create: '생성',
+      copy: '복사',
+      copied: '복사되었습니다',
     },
 
     // Dialog
@@ -120,6 +126,93 @@ export default {
         deleteAll: '모든 로그를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?',
       },
       cleanupResult: '{{count}}개의 로그가 정리되었습니다.',
+    },
+
+    // Translation
+    translation: {
+      title: '번역',
+      searchSessions: '세션 검색...',
+      newSession: '새 번역 세션',
+      activeSessions: '진행 중',
+      completedSessions: '완료됨',
+      noSessions: '세션이 없습니다',
+      noSearchResults: '검색 결과가 없습니다',
+      selectOrCreateSession: '세션을 선택하거나 새로 생성하세요',
+
+      // Session
+      sessionTitle: '세션 제목',
+      sessionMemo: '메모',
+      sessionMemoPlaceholder: '번역 스타일, 주의사항 등을 메모하세요...',
+      editSession: '세션 수정',
+      sessionCreated: '세션이 생성되었습니다',
+      sessionDeleted: '세션이 삭제되었습니다',
+
+      // Custom Dict
+      customDict: '사용자 사전',
+      customDictHelp: '원문=번역문 형식으로 한 줄에 하나씩 입력하세요',
+      customDictPlaceholder: 'Harry Potter=해리 포터\nHogwarts=호그와트',
+
+      // Editor
+      sourceText: '원문',
+      translatedText: '번역문',
+      sourceTextPlaceholder: '번역할 텍스트를 입력하세요...',
+      translatedTextPlaceholder: '번역 결과가 여기에 표시됩니다',
+      charCount: '{{count}}자',
+      wordCount: '{{count}}단어',
+
+      // Progress
+      chunkProgress: '청크 진행 상황',
+      chunks: '청크',
+      completed: '완료',
+      failed: '실패',
+      clickToRetry: '클릭하여 재시도',
+      estimatedRemaining: '예상 남은 시간',
+      estimatedSeconds: '약 {{count}}초',
+      estimatedMinutes: '약 {{count}}분',
+
+      // Controls
+      startTranslation: '번역 시작',
+      pause: '일시정지',
+      resume: '재개',
+      retryFailed: '실패 청크 재시도',
+      translating: '번역 중...',
+      settings: '설정',
+
+      // Config
+      model: 'AI 모델',
+      chunkSize: '청크 크기',
+      characters: '자',
+      chunkSizeHelp: '청크가 클수록 문맥을 더 잘 이해하지만, 오류 발생 시 재시도 비용이 커집니다',
+      configUpdated: '설정이 저장되었습니다',
+
+      // Status
+      status: {
+        draft: '초안',
+        ready: '준비됨',
+        translating: '번역 중',
+        paused: '일시정지',
+        completed: '완료',
+        failed: '실패',
+      },
+
+      // Confirm
+      confirm: {
+        deleteSession: '이 세션을 삭제하시겠습니까? 모든 번역 데이터가 삭제됩니다.',
+      },
+
+      // Errors
+      errors: {
+        loadSessionsFailed: '세션 목록을 불러오는데 실패했습니다',
+        createSessionFailed: '세션 생성에 실패했습니다',
+        loadSessionFailed: '세션을 불러오는데 실패했습니다',
+        updateSessionFailed: '세션 수정에 실패했습니다',
+        deleteSessionFailed: '세션 삭제에 실패했습니다',
+        noSourceText: '번역할 텍스트를 입력하세요',
+        startFailed: '번역 시작에 실패했습니다',
+        retryFailed: '재시도에 실패했습니다',
+        loadConfigFailed: '설정을 불러오는데 실패했습니다',
+        updateConfigFailed: '설정 저장에 실패했습니다',
+      },
     },
   },
 };

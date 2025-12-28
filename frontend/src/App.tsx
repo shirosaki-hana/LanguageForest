@@ -9,6 +9,7 @@ import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
 import WelcomePage from './pages/WelcomePage';
 import LogsPage from './pages/LogsPage';
+import TranslationPage from './pages/TranslationPage';
 
 // 인증 상태에 따른 라우팅 로직
 function AuthRouter() {
@@ -62,6 +63,7 @@ function AuthRouter() {
           <Route element={<Layout />}>
             <Route path='/welcome' element={<WelcomePage />} />
             <Route path='/logs' element={<LogsPage />} />
+            <Route path='/translation' element={<TranslationPage />} />
             <Route path='/' element={<Navigate to='/welcome' replace />} />
           </Route>
           <Route path='*' element={<Navigate to='/welcome' replace />} />

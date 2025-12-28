@@ -12,6 +12,12 @@ export default {
       refresh: 'Refresh',
       saving: 'Saving...',
       rowsPerPage: 'Rows per page',
+      back: 'Back',
+      edit: 'Edit',
+      delete: 'Delete',
+      create: 'Create',
+      copy: 'Copy',
+      copied: 'Copied',
     },
 
     // Dialog
@@ -120,6 +126,93 @@ export default {
         deleteAll: 'This will delete all logs. This action cannot be undone. Continue?',
       },
       cleanupResult: '{{count}} logs have been cleaned up.',
+    },
+
+    // Translation
+    translation: {
+      title: 'Translation',
+      searchSessions: 'Search sessions...',
+      newSession: 'New Translation Session',
+      activeSessions: 'Active',
+      completedSessions: 'Completed',
+      noSessions: 'No sessions',
+      noSearchResults: 'No search results',
+      selectOrCreateSession: 'Select or create a session',
+
+      // Session
+      sessionTitle: 'Session Title',
+      sessionMemo: 'Memo',
+      sessionMemoPlaceholder: 'Notes about translation style, guidelines, etc...',
+      editSession: 'Edit Session',
+      sessionCreated: 'Session created',
+      sessionDeleted: 'Session deleted',
+
+      // Custom Dict
+      customDict: 'Custom Dictionary',
+      customDictHelp: 'Enter one term per line in "source=translation" format',
+      customDictPlaceholder: 'Harry Potter=해리 포터\nHogwarts=호그와트',
+
+      // Editor
+      sourceText: 'Source Text',
+      translatedText: 'Translation',
+      sourceTextPlaceholder: 'Enter text to translate...',
+      translatedTextPlaceholder: 'Translation will appear here',
+      charCount: '{{count}} chars',
+      wordCount: '{{count}} words',
+
+      // Progress
+      chunkProgress: 'Chunk Progress',
+      chunks: 'chunks',
+      completed: 'Completed',
+      failed: 'Failed',
+      clickToRetry: 'Click to retry',
+      estimatedRemaining: 'Estimated remaining',
+      estimatedSeconds: '~{{count}}s',
+      estimatedMinutes: '~{{count}}min',
+
+      // Controls
+      startTranslation: 'Start Translation',
+      pause: 'Pause',
+      resume: 'Resume',
+      retryFailed: 'Retry Failed',
+      translating: 'Translating...',
+      settings: 'Settings',
+
+      // Config
+      model: 'AI Model',
+      chunkSize: 'Chunk Size',
+      characters: 'chars',
+      chunkSizeHelp: 'Larger chunks preserve more context, but increase retry cost on errors',
+      configUpdated: 'Settings saved',
+
+      // Status
+      status: {
+        draft: 'Draft',
+        ready: 'Ready',
+        translating: 'Translating',
+        paused: 'Paused',
+        completed: 'Completed',
+        failed: 'Failed',
+      },
+
+      // Confirm
+      confirm: {
+        deleteSession: 'Delete this session? All translation data will be deleted.',
+      },
+
+      // Errors
+      errors: {
+        loadSessionsFailed: 'Failed to load sessions',
+        createSessionFailed: 'Failed to create session',
+        loadSessionFailed: 'Failed to load session',
+        updateSessionFailed: 'Failed to update session',
+        deleteSessionFailed: 'Failed to delete session',
+        noSourceText: 'Please enter text to translate',
+        startFailed: 'Failed to start translation',
+        retryFailed: 'Retry failed',
+        loadConfigFailed: 'Failed to load settings',
+        updateConfigFailed: 'Failed to save settings',
+      },
     },
   },
 };
