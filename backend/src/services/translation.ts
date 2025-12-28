@@ -345,9 +345,8 @@ export async function getTranslationForDownload(sessionId: string): Promise<{ co
   // 파일명 생성: 원본 파일명에서 확장자 앞에 _translated 추가
   const originalName = session.originalFileName || session.title;
   const lastDot = originalName.lastIndexOf('.');
-  const fileName = lastDot > 0 
-    ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}`
-    : `${originalName}_translated.txt`;
+  const fileName =
+    lastDot > 0 ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}` : `${originalName}_translated.txt`;
 
   return { content, fileName };
 }

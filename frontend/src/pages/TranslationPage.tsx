@@ -7,13 +7,7 @@ import { useTranslationStore } from '../stores/translationStore';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore, type TranslationSettingsProps } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
-import {
-  SessionSidebar,
-  FileUploadZone,
-  ChunkListView,
-  ControlPanel,
-  SessionDialog,
-} from '../components/translation';
+import { SessionSidebar, FileUploadZone, ChunkListView, ControlPanel, SessionDialog } from '../components/translation';
 import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } from '@languageforest/sharedtype';
 
 // ============================================
@@ -198,7 +192,8 @@ export default function TranslationPage() {
 
   // 파생 상태
   // 파일이 있는지 확인: originalFileName이 있거나, sourceText가 있거나, 청크가 있는 경우
-  const hasFile = currentSession?.status !== 'draft' && 
+  const hasFile =
+    currentSession?.status !== 'draft' &&
     Boolean(currentSession?.originalFileName || currentSession?.sourceText || (currentSession?.totalChunks ?? 0) > 0);
   const hasCompletedChunks = chunks.some(c => c.status === 'completed');
   const hasFailedChunks = chunks.some(c => c.status === 'failed');
@@ -254,11 +249,7 @@ export default function TranslationPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             {/* 사이드바 토글 버튼 */}
             {(!sidebarOpen || isMobile) && (
-              <IconButton
-                onClick={handleToggleSidebar}
-                edge='start'
-                sx={{ mr: 1 }}
-              >
+              <IconButton onClick={handleToggleSidebar} edge='start' sx={{ mr: 1 }}>
                 <MenuIcon />
               </IconButton>
             )}
@@ -321,12 +312,7 @@ export default function TranslationPage() {
             {/* 메인 콘텐츠 */}
             <Box sx={{ flex: 1, overflow: 'hidden', p: 2, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
               {/* 파일 업로드 영역 */}
-              <FileUploadZone
-                session={currentSession}
-                isUploading={isUploading}
-                onUpload={handleUploadFile}
-                disabled={isTranslating}
-              />
+              <FileUploadZone session={currentSession} isUploading={isUploading} onUpload={handleUploadFile} disabled={isTranslating} />
 
               {/* 청크 리스트 */}
               {hasFile && (

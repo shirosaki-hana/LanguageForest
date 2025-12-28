@@ -90,8 +90,7 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
   const [expanded, setExpanded] = useState(false);
 
   const previewLength = 100;
-  const sourcePreview =
-    chunk.sourceText.length > previewLength ? chunk.sourceText.slice(0, previewLength) + '...' : chunk.sourceText;
+  const sourcePreview = chunk.sourceText.length > previewLength ? chunk.sourceText.slice(0, previewLength) + '...' : chunk.sourceText;
   const translatedPreview = chunk.translatedText
     ? chunk.translatedText.length > previewLength
       ? chunk.translatedText.slice(0, previewLength) + '...'
@@ -137,28 +136,47 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
           <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
             {chunk.status === 'failed' && (
               <Tooltip title={t('translation.retryChunk')}>
-                <IconButton size='small' onClick={e => { e.stopPropagation(); onRetry(); }} disabled={isTranslating}>
+                <IconButton
+                  size='small'
+                  onClick={e => {
+                    e.stopPropagation();
+                    onRetry();
+                  }}
+                  disabled={isTranslating}
+                >
                   <RetryIcon fontSize='small' />
                 </IconButton>
               </Tooltip>
             )}
             {(chunk.status === 'pending' || chunk.status === 'failed') && (
               <Tooltip title={t('translation.translateChunk')}>
-                <IconButton size='small' onClick={e => { e.stopPropagation(); onTranslate(); }} disabled={isTranslating}>
+                <IconButton
+                  size='small'
+                  onClick={e => {
+                    e.stopPropagation();
+                    onTranslate();
+                  }}
+                  disabled={isTranslating}
+                >
                   <TranslateIcon fontSize='small' />
                 </IconButton>
               </Tooltip>
             )}
             {chunk.status === 'completed' && (
               <Tooltip title={t('translation.retranslateChunk')}>
-                <IconButton size='small' onClick={e => { e.stopPropagation(); onTranslate(); }} disabled={isTranslating}>
+                <IconButton
+                  size='small'
+                  onClick={e => {
+                    e.stopPropagation();
+                    onTranslate();
+                  }}
+                  disabled={isTranslating}
+                >
                   <RetryIcon fontSize='small' />
                 </IconButton>
               </Tooltip>
             )}
-            <IconButton size='small'>
-              {expanded ? <CollapseIcon fontSize='small' /> : <ExpandIcon fontSize='small' />}
-            </IconButton>
+            <IconButton size='small'>{expanded ? <CollapseIcon fontSize='small' /> : <ExpandIcon fontSize='small' />}</IconButton>
           </Box>
         </TableCell>
       </TableRow>
@@ -190,10 +208,7 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
                       bgcolor: chunk.translatedText ? 'inherit' : 'action.disabledBackground',
                     }}
                   >
-                    <Typography
-                      variant='body2'
-                      sx={{ whiteSpace: 'pre-wrap', color: chunk.translatedText ? 'inherit' : 'text.disabled' }}
-                    >
+                    <Typography variant='body2' sx={{ whiteSpace: 'pre-wrap', color: chunk.translatedText ? 'inherit' : 'text.disabled' }}>
                       {chunk.translatedText || t('translation.notTranslatedYet')}
                     </Typography>
                   </Paper>
@@ -268,9 +283,7 @@ export default function ChunkListView({
             {progress && (
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Chip size='small' color='success' label={`${progress.completed} ${t('translation.completed')}`} />
-                {progress.failed > 0 && (
-                  <Chip size='small' color='error' label={`${progress.failed} ${t('translation.failed')}`} />
-                )}
+                {progress.failed > 0 && <Chip size='small' color='error' label={`${progress.failed} ${t('translation.failed')}`} />}
                 <Chip size='small' label={`${progress.pending} ${t('translation.pending')}`} />
               </Box>
             )}
@@ -343,15 +356,9 @@ export default function ChunkListView({
       {/* 페이지네이션 */}
       {pagination.totalPages > 1 && (
         <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
-          <Pagination
-            count={pagination.totalPages}
-            page={pagination.page}
-            onChange={(_, page) => onPageChange(page)}
-            color='primary'
-          />
+          <Pagination count={pagination.totalPages} page={pagination.page} onChange={(_, page) => onPageChange(page)} color='primary' />
         </Box>
       )}
     </Paper>
   );
 }
-

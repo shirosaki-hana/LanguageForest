@@ -354,9 +354,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
         const originalName = state.currentSession.originalFileName || state.currentSession.title;
         const lastDot = originalName.lastIndexOf('.');
         const fileName =
-          lastDot > 0
-            ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}`
-            : `${originalName}_translated.txt`;
+          lastDot > 0 ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}` : `${originalName}_translated.txt`;
         a.download = fileName;
         document.body.appendChild(a);
         a.click();
@@ -393,9 +391,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
             failed: result.chunks.filter(c => c.status === 'failed').length,
             pending: result.chunks.filter(c => c.status === 'pending' || c.status === 'processing').length,
             total: result.pagination.total,
-            percent: Math.round(
-              (result.chunks.filter(c => c.status === 'completed').length / result.pagination.total) * 100
-            ),
+            percent: Math.round((result.chunks.filter(c => c.status === 'completed').length / result.pagination.total) * 100),
           },
         });
       } catch {

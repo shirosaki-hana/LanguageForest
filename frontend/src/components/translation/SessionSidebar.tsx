@@ -397,25 +397,13 @@ function SidebarContent({
             <ListItemIcon sx={{ minWidth: 40 }}>
               <TerminalIcon fontSize='small' />
             </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography variant='body2'>
-                  {t('logs.title')}
-                </Typography>
-              }
-            />
+            <ListItemText primary={<Typography variant='body2'>{t('logs.title')}</Typography>} />
           </ListItemButton>
           <ListItemButton onClick={onOpenSettings} sx={{ borderRadius: 2, py: 1 }}>
             <ListItemIcon sx={{ minWidth: 40 }}>
               <SettingsIcon fontSize='small' />
             </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography variant='body2'>
-                  {t('settings.title')}
-                </Typography>
-              }
-            />
+            <ListItemText primary={<Typography variant='body2'>{t('settings.title')}</Typography>} />
           </ListItemButton>
           <ListItemButton
             onClick={onLogout}

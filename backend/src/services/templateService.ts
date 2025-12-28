@@ -139,4 +139,3 @@ class TemplateService {
 
 // 싱글톤 인스턴스
 export const templateService = new TemplateService();
-

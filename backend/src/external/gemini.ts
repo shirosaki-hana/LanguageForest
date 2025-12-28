@@ -170,9 +170,7 @@ export class GeminiClient {
 
     // 모델 정보에서 thinkingConfig 가져오기
     const modelInfo = getModelById(this.model);
-    const thinkingConfig = modelInfo?.thinkingConfig
-      ? this.buildThinkingConfig(modelInfo.thinkingConfig)
-      : undefined;
+    const thinkingConfig = modelInfo?.thinkingConfig ? this.buildThinkingConfig(modelInfo.thinkingConfig) : undefined;
 
     // 요청 병합 (safetySettings, generationConfig 기본값 적용)
     const mergedRequest: GeminiRequest = {
@@ -260,7 +258,7 @@ export class GeminiClient {
 
         // Gemini API 에러 응답 파싱 시도
         const parsed = GeminiErrorResponseSchema.safeParse(errorData);
-        
+
         // 에러 로깅
         logger.error('external_api', 'Gemini API request failed', {
           requestId,

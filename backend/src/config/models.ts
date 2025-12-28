@@ -38,7 +38,7 @@ export type GeminiModelInfo = z.infer<typeof GeminiModelInfoSchema>;
 /**
  * 사용 가능한 Gemini 모델 목록
  * 새 모델 추가 시 여기에 추가하면 됩니다.
- * 
+ *
  * thinkingConfig 설정:
  * - Gemini 3.x: { type: 'level', level: 'minimal' | 'low' | 'medium' | 'high' }
  * - Gemini 2.5 이하: { type: 'budget', budget: 0 } (0 = 사고 완전 비활성화)
@@ -123,12 +123,9 @@ export const DEFAULT_GENERATION_CONFIG: GenerationConfig = {
 /**
  * GenerationConfig 병합 (사용자 설정 + 기본값)
  */
-export function mergeGenerationConfig(
-  userConfig?: Partial<GenerationConfig>,
-  modelId?: string
-): GenerationConfig {
+export function mergeGenerationConfig(userConfig?: Partial<GenerationConfig>, modelId?: string): GenerationConfig {
   const model = modelId ? getModelById(modelId) : undefined;
-  
+
   return {
     ...DEFAULT_GENERATION_CONFIG,
     // 모델의 기본 temperature 적용
@@ -137,4 +134,3 @@ export function mergeGenerationConfig(
     ...userConfig,
   };
 }
-

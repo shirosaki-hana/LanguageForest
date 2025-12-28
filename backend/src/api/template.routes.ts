@@ -31,4 +31,3 @@ export const templateRoutes: FastifyPluginAsync = async fastify => {
 };
 
 export default templateRoutes;
-

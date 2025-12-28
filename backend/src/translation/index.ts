@@ -29,12 +29,7 @@ export { registerDefaultHelpers } from './templateHelper.js';
 export { splitIntoChunks } from './chunker.js';
 
 // Prompt Builder
-export {
-  registerTranslationHelpers,
-  buildPrompt,
-  buildTranslationContext,
-  buildPromptFromDB,
-} from './promptBuilder.js';
+export { registerTranslationHelpers, buildPrompt, buildTranslationContext, buildPromptFromDB } from './promptBuilder.js';
 export type {
   ChunkInfo,
   SessionInfo,

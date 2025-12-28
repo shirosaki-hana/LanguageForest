@@ -100,12 +100,7 @@ export default function FileUploadZone({ session, isUploading, onUpload, disable
             label={t(`translation.sessionStatus.${session.status}`)}
             color={session.status === 'completed' ? 'success' : session.status === 'failed' ? 'error' : 'default'}
           />
-          <Button
-            component='label'
-            variant='outlined'
-            size='small'
-            disabled={disabled || isUploading || session.status === 'translating'}
-          >
+          <Button component='label' variant='outlined' size='small' disabled={disabled || isUploading || session.status === 'translating'}>
             {t('translation.replaceFile')}
             <input type='file' accept='.txt' hidden onChange={handleFileSelect} />
           </Button>
@@ -173,4 +168,3 @@ export default function FileUploadZone({ session, isUploading, onUpload, disable
     </Paper>
   );
 }
-

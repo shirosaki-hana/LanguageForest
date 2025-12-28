@@ -230,7 +230,8 @@ export default {
       configUpdated: 'Settings saved',
       advancedSettings: 'Advanced Settings',
       temperature: 'Temperature',
-      temperatureHelp: 'Higher values produce more creative and diverse outputs, lower values produce more consistent and predictable outputs',
+      temperatureHelp:
+        'Higher values produce more creative and diverse outputs, lower values produce more consistent and predictable outputs',
       maxOutputTokens: 'Max Output Tokens',
       maxOutputTokensHelp: 'Maximum number of tokens to generate. Leave empty to use model default',
       topPHelp: 'Cumulative probability sampling. Lower values reduce diversity',

@@ -351,11 +351,7 @@ export default function SettingsDialog() {
                         valueLabelDisplay='auto'
                         disabled={topP === undefined}
                       />
-                      <Button
-                        size='small'
-                        onClick={() => setTopP(topP === undefined ? 0.95 : undefined)}
-                        sx={{ mt: 1 }}
-                      >
+                      <Button size='small' onClick={() => setTopP(topP === undefined ? 0.95 : undefined)} sx={{ mt: 1 }}>
                         {topP === undefined ? t('translation.enable') : t('translation.useDefault')}
                       </Button>
                     </Box>
