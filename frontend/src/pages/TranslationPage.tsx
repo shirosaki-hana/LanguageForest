@@ -72,11 +72,13 @@ export default function TranslationPage() {
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TranslationSession | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile); // 데스크톱에서는 기본 열림
+  const [prevIsMobile, setPrevIsMobile] = useState(isMobile);
 
-  // 화면 크기 변경 시 사이드바 상태 조정
-  useEffect(() => {
+  // 화면 크기 변경 시 사이드바 상태 조정 (렌더링 중 상태 조정 패턴)
+  if (isMobile !== prevIsMobile) {
+    setPrevIsMobile(isMobile);
     setSidebarOpen(!isMobile);
-  }, [isMobile]);
+  }
 
   // 초기 로드
   useEffect(() => {

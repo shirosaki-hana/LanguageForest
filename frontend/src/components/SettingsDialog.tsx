@@ -39,7 +39,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
-import type { TranslationConfig, GeminiModelInfo, UpdateTranslationConfigRequest } from '@languageforest/sharedtype';
 
 // ============================================
 // Tab Panel
