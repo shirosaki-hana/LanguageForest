@@ -257,9 +257,9 @@ export default function ChunkListView({
   const progressPercent = progress ? progress.percent : 0;
 
   return (
-    <Paper elevation={0} sx={{ overflow: 'hidden' }}>
+    <Paper elevation={0} sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* 헤더 */}
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Typography variant='subtitle1' fontWeight={600}>
             {t('translation.chunkList')} ({pagination.total})
@@ -310,7 +310,7 @@ export default function ChunkListView({
       </Box>
 
       {/* 테이블 */}
-      <TableContainer sx={{ maxHeight: 500 }}>
+      <TableContainer sx={{ flex: 1, minHeight: 0 }}>
         <Table stickyHeader size='small'>
           <TableHead>
             <TableRow>
@@ -342,7 +342,7 @@ export default function ChunkListView({
 
       {/* 페이지네이션 */}
       {pagination.totalPages > 1 && (
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', borderTop: 1, borderColor: 'divider' }}>
+        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
           <Pagination
             count={pagination.totalPages}
             page={pagination.page}

@@ -1,16 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
-import {
-  Translate as TranslateIcon,
-  Settings as SettingsIcon,
-  Terminal as TerminalIcon,
-  Logout as LogoutIcon,
-} from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Translate as TranslateIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationStore } from '../stores/translationStore';
 import { useAuthStore } from '../stores/authStore';
-import { useSettingsStore } from '../stores/settingsStore';
+import { useSettingsStore, type TranslationSettingsProps } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
 import {
   SessionSidebar,
@@ -18,7 +13,6 @@ import {
   ChunkListView,
   ControlPanel,
   SessionDialog,
-  ConfigDialog,
 } from '../components/translation';
 import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } from '@languageforest/sharedtype';
 
@@ -29,6 +23,8 @@ import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } f
 export default function TranslationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { logout } = useAuthStore();
   const { openSettings } = useSettingsStore();
 
@@ -75,7 +71,12 @@ export default function TranslationPage() {
   // 로컬 상태
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TranslationSession | null>(null);
-  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile); // 데스크톱에서는 기본 열림
+
+  // 화면 크기 변경 시 사이드바 상태 조정
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   // 초기 로드
   useEffect(() => {
@@ -88,6 +89,11 @@ export default function TranslationPage() {
       disconnectWs();
     };
   }, [loadSessions, loadConfig, loadTemplates, connectWs, disconnectWs]);
+
+  // 사이드바 토글
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
 
   // 세션 선택
   const handleSelectSession = useCallback(
@@ -173,6 +179,21 @@ export default function TranslationPage() {
     failedChunks.forEach(chunk => retryChunk(chunk.id));
   }, [chunks, retryChunk]);
 
+  // 설정 열기 (번역 설정 탭으로)
+  const handleOpenSettings = useCallback(
+    (tab: number = 0) => {
+      const translationProps: TranslationSettingsProps = {
+        config,
+        models,
+        modelsLoading,
+        onSave: updateConfig,
+        onLoadModels: loadModels,
+      };
+      openSettings(tab, translationProps);
+    },
+    [config, models, modelsLoading, updateConfig, loadModels, openSettings]
+  );
+
   // 파생 상태
   // 파일이 있는지 확인: originalFileName이 있거나, sourceText가 있거나, 청크가 있는 경우
   const hasFile = currentSession?.status !== 'draft' && 
@@ -187,59 +208,69 @@ export default function TranslationPage() {
         sessions={sessions}
         loading={sessionsLoading}
         currentSessionId={currentSessionId}
+        open={sidebarOpen}
+        onToggle={handleToggleSidebar}
         onSelectSession={handleSelectSession}
         onCreateSession={handleNewSession}
         onDeleteSession={handleDeleteSession}
         onEditSession={handleEditSession}
+        onNavigateLogs={() => navigate('/logs')}
+        onOpenSettings={() => handleOpenSettings(0)}
+        onLogout={logout}
       />
 
       {/* 메인 영역 */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          // 데스크톱에서 사이드바 열릴 때 마진 조정
+          ml: !isMobile && sidebarOpen ? 0 : 0,
+          transition: theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.leavingScreen,
+          }),
+        }}
+      >
         {/* 헤더 */}
         <Paper
           elevation={0}
           sx={{
-            px: 3,
-            py: 2,
+            px: 2,
+            py: 1.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: 1,
             borderColor: 'divider',
             borderRadius: 0,
+            minHeight: 56,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* 사이드바 토글 버튼 */}
+            {(!sidebarOpen || isMobile) && (
+              <IconButton
+                onClick={handleToggleSidebar}
+                edge='start'
+                sx={{ mr: 1 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
             <TranslateIcon color='primary' />
             <Box>
-              <Typography variant='h6' fontWeight={600}>
+              <Typography variant='h6' fontWeight={600} noWrap>
                 {currentSession?.title || t('translation.title')}
               </Typography>
               {currentSession?.memo && (
-                <Typography variant='caption' color='text.secondary'>
+                <Typography variant='caption' color='text.secondary' noWrap>
                   {currentSession.memo}
                 </Typography>
               )}
             </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* 네비게이션 버튼 */}
-            <Tooltip title={t('logs.title')}>
-              <IconButton onClick={() => navigate('/logs')} color='default'>
-                <TerminalIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t('settings.title')}>
-              <IconButton onClick={openSettings} color='default'>
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={t('auth.logout')}>
-              <IconButton onClick={logout} color='error'>
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
           </Box>
         </Paper>
 
@@ -254,10 +285,13 @@ export default function TranslationPage() {
               justifyContent: 'center',
               flexDirection: 'column',
               gap: 2,
+              p: 3,
             }}
           >
             <TranslateIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
-            <Typography color='text.secondary'>{t('translation.selectOrCreateSession')}</Typography>
+            <Typography color='text.secondary' textAlign='center'>
+              {t('translation.selectOrCreateSession')}
+            </Typography>
           </Box>
         ) : (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -278,12 +312,12 @@ export default function TranslationPage() {
                 onResume={resumeTranslation}
                 onRetryFailed={handleRetryFailed}
                 onDownload={downloadTranslation}
-                onOpenSettings={() => setConfigDialogOpen(true)}
+                onOpenSettings={() => handleOpenSettings(1)}
               />
             </Box>
 
             {/* 메인 콘텐츠 */}
-            <Box sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box sx={{ flex: 1, overflow: 'hidden', p: 2, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
               {/* 파일 업로드 영역 */}
               <FileUploadZone
                 session={currentSession}
@@ -318,17 +352,6 @@ export default function TranslationPage() {
         onClose={handleCloseSessionDialog}
         onCreate={handleCreateSession}
         onUpdate={handleUpdateSession}
-      />
-
-      {/* 설정 다이얼로그 */}
-      <ConfigDialog
-        open={configDialogOpen}
-        config={config}
-        models={models}
-        modelsLoading={modelsLoading}
-        onClose={() => setConfigDialogOpen(false)}
-        onSave={updateConfig}
-        onLoadModels={loadModels}
       />
     </Box>
   );

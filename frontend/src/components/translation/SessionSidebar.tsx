@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box,
-  Paper,
   Typography,
   List,
   ListItemButton,
@@ -18,6 +17,9 @@ import {
   MenuItem,
   Divider,
   Skeleton,
+  Drawer,
+  useMediaQuery,
+  useTheme,
   alpha,
 } from '@mui/material';
 import {
@@ -34,8 +36,18 @@ import {
   Pause as PauseIcon,
   PlayArrow as PlayIcon,
   Schedule as PendingIcon,
+  Terminal as TerminalIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import type { TranslationSession, TranslationSessionStatus } from '@languageforest/sharedtype';
+
+// ============================================
+// Constants
+// ============================================
+
+export const SIDEBAR_WIDTH = 280;
 
 // ============================================
 // Props
@@ -45,10 +57,16 @@ interface SessionSidebarProps {
   sessions: TranslationSession[];
   loading: boolean;
   currentSessionId: string | null;
+  open: boolean;
+  onToggle: () => void;
   onSelectSession: (id: string) => void;
   onCreateSession: () => void;
   onDeleteSession: (id: string) => void;
   onEditSession: (session: TranslationSession) => void;
+  // 하단 액션 버튼
+  onNavigateLogs: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => void;
 }
 
 // ============================================
@@ -173,18 +191,38 @@ function SessionListItem({ session, selected, onSelect, onDelete, onEdit }: Sess
 }
 
 // ============================================
-// 세션 사이드바
+// 사이드바 내용
 // ============================================
 
-export default function SessionSidebar({
+interface SidebarContentProps {
+  sessions: TranslationSession[];
+  loading: boolean;
+  currentSessionId: string | null;
+  isMobile: boolean;
+  onToggle: () => void;
+  onSelectSession: (id: string) => void;
+  onCreateSession: () => void;
+  onDeleteSession: (id: string) => void;
+  onEditSession: (session: TranslationSession) => void;
+  onNavigateLogs: () => void;
+  onOpenSettings: () => void;
+  onLogout: () => void;
+}
+
+function SidebarContent({
   sessions,
   loading,
   currentSessionId,
+  isMobile,
+  onToggle,
   onSelectSession,
   onCreateSession,
   onDeleteSession,
   onEditSession,
-}: SessionSidebarProps) {
+  onNavigateLogs,
+  onOpenSettings,
+  onLogout,
+}: SidebarContentProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -204,21 +242,44 @@ export default function SessionSidebar({
     setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }));
   };
 
+  // 세션 선택 시 모바일에서 사이드바 닫기
+  const handleSelectSession = (id: string) => {
+    onSelectSession(id);
+    if (isMobile) {
+      onToggle();
+    }
+  };
+
   return (
-    <Paper
-      elevation={0}
+    <Box
       sx={{
-        width: 280,
+        width: SIDEBAR_WIDTH,
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        borderRight: 1,
-        borderColor: 'divider',
-        borderRadius: 0,
+        bgcolor: 'background.paper',
       }}
     >
+      {/* 헤더 */}
+      <Box
+        sx={{
+          p: 2,
+          pb: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <Typography variant='h6' fontWeight={600}>
+          {t('translation.title')}
+        </Typography>
+        <IconButton onClick={onToggle} size='small'>
+          <ChevronLeftIcon />
+        </IconButton>
+      </Box>
+
       {/* 검색 */}
-      <Box sx={{ p: 2, pb: 1 }}>
+      <Box sx={{ px: 2, pb: 1 }}>
         <TextField
           fullWidth
           size='small'
@@ -282,7 +343,7 @@ export default function SessionSidebar({
                         key={session.id}
                         session={session}
                         selected={session.id === currentSessionId}
-                        onSelect={() => onSelectSession(session.id)}
+                        onSelect={() => handleSelectSession(session.id)}
                         onDelete={() => onDeleteSession(session.id)}
                         onEdit={() => onEditSession(session)}
                       />
@@ -315,7 +376,7 @@ export default function SessionSidebar({
                         key={session.id}
                         session={session}
                         selected={session.id === currentSessionId}
-                        onSelect={() => onSelectSession(session.id)}
+                        onSelect={() => handleSelectSession(session.id)}
                         onDelete={() => onDeleteSession(session.id)}
                         onEdit={() => onEditSession(session)}
                       />
@@ -327,6 +388,146 @@ export default function SessionSidebar({
           </>
         )}
       </Box>
-    </Paper>
+
+      {/* 하단 액션 버튼 */}
+      <Divider />
+      <Box sx={{ p: 1 }}>
+        <List dense disablePadding>
+          <ListItemButton onClick={onNavigateLogs} sx={{ borderRadius: 2, py: 1 }}>
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <TerminalIcon fontSize='small' />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography variant='body2'>
+                  {t('logs.title')}
+                </Typography>
+              }
+            />
+          </ListItemButton>
+          <ListItemButton onClick={onOpenSettings} sx={{ borderRadius: 2, py: 1 }}>
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <SettingsIcon fontSize='small' />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography variant='body2'>
+                  {t('settings.title')}
+                </Typography>
+              }
+            />
+          </ListItemButton>
+          <ListItemButton
+            onClick={onLogout}
+            sx={{
+              borderRadius: 2,
+              py: 1,
+              color: 'error.main',
+              '&:hover': {
+                bgcolor: theme => alpha(theme.palette.error.main, 0.08),
+              },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <LogoutIcon fontSize='small' color='error' />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography variant='body2' color='error'>
+                  {t('auth.logout')}
+                </Typography>
+              }
+            />
+          </ListItemButton>
+        </List>
+      </Box>
+    </Box>
+  );
+}
+
+// ============================================
+// 세션 사이드바
+// ============================================
+
+export default function SessionSidebar({
+  sessions,
+  loading,
+  currentSessionId,
+  open,
+  onToggle,
+  onSelectSession,
+  onCreateSession,
+  onDeleteSession,
+  onEditSession,
+  onNavigateLogs,
+  onOpenSettings,
+  onLogout,
+}: SessionSidebarProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const sidebarContent = (
+    <SidebarContent
+      sessions={sessions}
+      loading={loading}
+      currentSessionId={currentSessionId}
+      isMobile={isMobile}
+      onToggle={onToggle}
+      onSelectSession={onSelectSession}
+      onCreateSession={onCreateSession}
+      onDeleteSession={onDeleteSession}
+      onEditSession={onEditSession}
+      onNavigateLogs={onNavigateLogs}
+      onOpenSettings={onOpenSettings}
+      onLogout={onLogout}
+    />
+  );
+
+  // 모바일: Temporary Drawer (오버레이)
+  if (isMobile) {
+    return (
+      <Drawer
+        variant='temporary'
+        open={open}
+        onClose={onToggle}
+        ModalProps={{
+          keepMounted: true, // 모바일 성능 향상
+        }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: SIDEBAR_WIDTH,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        {sidebarContent}
+      </Drawer>
+    );
+  }
+
+  // 데스크톱: Persistent Drawer
+  return (
+    <Drawer
+      variant='persistent'
+      anchor='left'
+      open={open}
+      sx={{
+        width: open ? SIDEBAR_WIDTH : 0,
+        flexShrink: 0,
+        transition: theme.transitions.create('width', {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.leavingScreen,
+        }),
+        '& .MuiDrawer-paper': {
+          width: SIDEBAR_WIDTH,
+          boxSizing: 'border-box',
+          position: 'relative',
+          borderRight: 1,
+          borderColor: 'divider',
+        },
+      }}
+    >
+      {sidebarContent}
+    </Drawer>
   );
 }

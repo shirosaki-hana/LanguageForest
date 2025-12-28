@@ -59,6 +59,10 @@ export default {
     // Settings
     settings: {
       title: 'Settings',
+      tabs: {
+        app: 'App',
+        translation: 'Translation',
+      },
       theme: {
         title: 'Theme',
         light: 'Light',
@@ -70,6 +74,7 @@ export default {
         ko: '한국어',
         en: 'English',
       },
+      translationNotAvailable: 'Translation settings are not available',
     },
 
     // Errors
