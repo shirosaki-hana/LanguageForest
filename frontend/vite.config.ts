@@ -85,6 +85,7 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:4001',
           changeOrigin: true,
           secure: false,
+          ws: true, // 웹소켓 프록시 활성화
         },
       },
     },

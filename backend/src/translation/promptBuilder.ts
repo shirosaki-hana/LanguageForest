@@ -114,7 +114,7 @@ export function registerTranslationHelpers(parser: TemplateParser): void {
      * {{hasPrevious}} - 이전 청크가 존재하고 번역 완료되었는지
      *
      * @example
-     * {{#if hasPrevious}}이전 번역 있음{{/if}}
+     * {{#if (hasPrevious)}}이전 번역 있음{{/if}}
      */
     hasPrevious(this: TranslationContext) {
       return this.previous !== null;

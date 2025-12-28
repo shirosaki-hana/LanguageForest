@@ -10,6 +10,19 @@ import { logger } from '../utils/index.js';
 import { DEFAULT_MODEL_ID } from '../config/models.js';
 
 // ============================================
+// 후처리 유틸리티
+// ============================================
+
+/**
+ * 번역 결과 후처리 - HTML 주석 제거
+ * 프롬프트 기법으로 인해 모델 응답에 포함되는 마커 주석 등을 제거
+ */
+function postProcessTranslation(text: string): string {
+  // HTML 주석 제거 (<!-- ... --> 패턴)
+  return text.replace(/<!--[\s\S]*?-->/g, '').trim();
+}
+
+// ============================================
 // 타입 정의
 // ============================================
 
@@ -490,7 +503,8 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
       systemInstruction: promptResult.geminiMessages.systemInstruction,
     });
 
-    const translatedText = client.extractText(response);
+    const rawTranslatedText = client.extractText(response);
+    const translatedText = postProcessTranslation(rawTranslatedText);
     const usage = client.extractUsage(response);
     const processingTime = Date.now() - startTime;
 
@@ -544,8 +558,9 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
 
 /**
  * 단일 청크 번역 실행 (외부 API용)
+ * 프론트엔드가 완전한 TranslationChunk를 기대하므로 전체 객체 반환
  */
-export async function translateChunk(chunkId: string, options: { templateId: string; customDict?: string }): Promise<ChunkResult> {
+export async function translateChunk(chunkId: string, options: { templateId: string; customDict?: string }): Promise<TranslationChunk> {
   // 청크 조회 (세션 포함)
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
@@ -586,7 +601,16 @@ export async function translateChunk(chunkId: string, options: { templateId: str
     await assembleTranslation(chunk.sessionId);
   }
 
-  return result;
+  // 업데이트된 전체 청크 조회해서 반환
+  const updatedChunk = await database.translationChunk.findUnique({
+    where: { id: chunkId },
+  });
+
+  if (!updatedChunk) {
+    throw Object.assign(new Error('Chunk not found after translation'), { statusCode: 500 });
+  }
+
+  return updatedChunk;
 }
 
 /**
@@ -780,8 +804,9 @@ export async function resumeTranslation(sessionId: string, options: { templateId
 
 /**
  * 실패한 청크 재시도
+ * 프론트엔드가 완전한 TranslationChunk를 기대하므로 전체 객체 반환
  */
-export async function retryFailedChunk(chunkId: string, options: { templateId: string }): Promise<ChunkResult> {
+export async function retryFailedChunk(chunkId: string, options: { templateId: string }): Promise<TranslationChunk> {
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
     include: { session: true },
