@@ -5,7 +5,9 @@ import compress from '@fastify/compress';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import staticFiles from '@fastify/static';
+import websocket from '@fastify/websocket';
 import apiRoutes from './api/index.js';
+import { websocketRoutes } from './api/websocket.js';
 import { console_log } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
 import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
@@ -23,8 +25,10 @@ async function createFastifyApp() {
   await fastify.register(compress); // 3. 압축 설정
   await fastify.register(cors, corsConfig); // 4. CORS 정책 설정
   await fastify.register(cookie); // 5. Cookie 설정
-  await fastify.register(apiRoutes, { prefix: '/api' }); // 6. API 라우트 등록
-  await fastify.register(staticFiles, staticFilesConfig); // 7. 정적 파일 서빙
+  await fastify.register(websocket); // 6. WebSocket 플러그인
+  await fastify.register(apiRoutes, { prefix: '/api' }); // 7. API 라우트 등록
+  await fastify.register(websocketRoutes, { prefix: '/api/translation' }); // 8. WebSocket 라우트
+  await fastify.register(staticFiles, staticFilesConfig); // 9. 정적 파일 서빙
   //핸들러 등록
   fastify.setNotFoundHandler(notFoundHandler); // SPA fallback 및 404 핸들러
   fastify.setErrorHandler(errorHandler); // 전역 에러 핸들러

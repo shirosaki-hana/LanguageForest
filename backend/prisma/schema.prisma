@@ -42,3 +42,62 @@ model Log {
   @@index([category])
   @@index([createdAt])
 }
+
+// ============================================
+// 번역 도구 스키마
+// ============================================
+
+// 전역 설정 - 싱글톤 패턴 (id=1 고정)
+model TranslationConfig {
+  id        Int      @id @default(1)
+  model     String   
+  chunkSize Int      @default(2000)          // 목표 문자수
+  updatedAt DateTime @updatedAt
+
+  @@map("translation_config")
+}
+
+// 번역 세션
+model TranslationSession {
+  id             String   @id @default(cuid())
+  title          String                          // 세션 제목
+  memo           String?                         // 메모 (선택)
+  customDict     String?                         // 커스텀 사전 (JSON일 필요 없음)
+  sourceText     String?                         // 원문 전체
+  translatedText String?                         // 번역문 전체 (조립된 결과)
+  status         String   @default("draft")      // draft | chunking | translating | completed | failed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  chunks TranslationChunk[]
+
+  @@map("translation_sessions")
+  @@index([status])
+  @@index([createdAt])
+}
+
+// 번역 청크
+model TranslationChunk {
+  id             String             @id @default(cuid())
+  sessionId      String
+  session        TranslationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  order          Int                             // 청크 순서 (0부터)
+  sourceText     String                          // 원문 조각
+  translatedText String?                         // 번역된 텍스트
+  status         String             @default("pending") // pending | processing | completed | failed
+  errorMessage   String?                         // 실패 시 에러 메시지
+  retryCount     Int                @default(0)  // 재시도 횟수
+
+  // 메타데이터
+  tokenCount     Int?                            // 토큰 수 (비용 추적용)
+  processingTime Int?                            // 처리 시간 (ms)
+
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@map("translation_chunks")
+  @@unique([sessionId, order]) // 세션 내 순서는 유니크
+  @@index([sessionId])
+  @@index([status])
+}
