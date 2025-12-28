@@ -90,12 +90,7 @@ export default function WelcomePage() {
 
             {/* 빠른 링크 */}
             <Stack direction='row' spacing={2}>
-              <Button
-                variant='outlined'
-                startIcon={<TerminalIcon />}
-                onClick={() => navigate('/logs')}
-                size='large'
-              >
+              <Button variant='outlined' startIcon={<TerminalIcon />} onClick={() => navigate('/logs')} size='large'>
                 {t('logs.title')}
               </Button>
               <IconButton onClick={openSettings} color='primary' size='large'>
@@ -111,4 +106,3 @@ export default function WelcomePage() {
     </Container>
   );
 }
-

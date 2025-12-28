@@ -170,4 +170,3 @@ export function getDefaultTemplateParser(options?: TemplateParserOptions): Templ
 export function parseTemplate(template: string, data: TemplateData = {}): string {
   return getDefaultTemplateParser().parse(template, data);
 }
-

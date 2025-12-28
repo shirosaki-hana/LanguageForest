@@ -13,4 +13,3 @@ export const healthRoutes: FastifyPluginAsync = async fastify => {
     return reply.send({ status: 'ok', db: true });
   });
 };
-

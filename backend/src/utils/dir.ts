@@ -8,6 +8,6 @@ export const __dirname: string = path.dirname(__filename);
 // tsx 개발 실행 시: src/utils/dir.ts → __dirname = src/utils/ → ../../ = backend/
 const isInSrc = __dirname.includes(path.sep + 'src' + path.sep) || __dirname.endsWith(path.sep + 'src');
 export const backendRoot: string = isInSrc
-  ? path.join(__dirname, '../../')  // 개발: src/utils → backend
-  : path.join(__dirname, '../');    // 프로덕션: dist → backend
+  ? path.join(__dirname, '../../') // 개발: src/utils → backend
+  : path.join(__dirname, '../'); // 프로덕션: dist → backend
 export const projectRoot: string = path.join(backendRoot, '../');

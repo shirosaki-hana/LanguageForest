@@ -93,18 +93,18 @@ Get paginated log entries with optional filtering.
 
 **Query Parameters:**
 
-| Parameter    | Type              | Description                                    |
-| ------------ | ----------------- | ---------------------------------------------- |
-| `level`      | string (optional) | Filter by single level                         |
-| `levels`     | string[] (optional) | Filter by multiple levels                    |
-| `category`   | string (optional) | Filter by single category                      |
-| `categories` | string[] (optional) | Filter by multiple categories                |
-| `search`     | string (optional) | Search in message text                         |
-| `startDate`  | string (optional) | Filter logs after this date (ISO 8601)         |
-| `endDate`    | string (optional) | Filter logs before this date (ISO 8601)        |
-| `page`       | number (optional) | Page number (default: 1)                       |
-| `limit`      | number (optional) | Items per page (1-100, default: 50)            |
-| `sortOrder`  | string (optional) | Sort order: "asc" or "desc" (default: "desc")  |
+| Parameter    | Type                | Description                                   |
+| ------------ | ------------------- | --------------------------------------------- |
+| `level`      | string (optional)   | Filter by single level                        |
+| `levels`     | string[] (optional) | Filter by multiple levels                     |
+| `category`   | string (optional)   | Filter by single category                     |
+| `categories` | string[] (optional) | Filter by multiple categories                 |
+| `search`     | string (optional)   | Search in message text                        |
+| `startDate`  | string (optional)   | Filter logs after this date (ISO 8601)        |
+| `endDate`    | string (optional)   | Filter logs before this date (ISO 8601)       |
+| `page`       | number (optional)   | Page number (default: 1)                      |
+| `limit`      | number (optional)   | Items per page (1-100, default: 50)           |
+| `sortOrder`  | string (optional)   | Sort order: "asc" or "desc" (default: "desc") |
 
 **Response:**
 

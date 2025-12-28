@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { TemplateParser, getDefaultTemplateParser, HelperRegistry } from './templateParser.js';
 import { ChatMLParser } from './chatmlParser.js';
-import type { OpenAIMessage } from './types.js';
-import { chatMessagesToOpenAI } from './types.js';
+import type { GeminiConvertedMessages } from './types.js';
+import { chatMessagesToGemini } from './types.js';
 import { registerDefaultHelpers } from './templateHelper.js';
 
 // ============================================
@@ -104,7 +104,7 @@ export function registerTranslationHelpers(parser: TemplateParser): void {
   const helpers: HelperRegistry = {
     /**
      * {{chunk offset "field"}} - 상대 인덱스로 청크 접근
-     * 
+     *
      * @example
      * {{chunk 0 "source"}}      // 현재 청크 원문
      * {{chunk -1 "source"}}     // 이전 청크 원문
@@ -136,7 +136,7 @@ export function registerTranslationHelpers(parser: TemplateParser): void {
 
     /**
      * {{hasChunk offset}} - 특정 오프셋의 청크 존재 여부
-     * 
+     *
      * @example
      * {{#if (hasChunk -1)}}이전 청크 있음{{/if}}
      * {{#if (hasChunk -2)}}2개 전 청크 있음{{/if}}
@@ -149,7 +149,7 @@ export function registerTranslationHelpers(parser: TemplateParser): void {
 
     /**
      * {{hasPrevious}} - 이전 청크가 존재하고 번역 완료되었는지
-     * 
+     *
      * @example
      * {{#if hasPrevious}}이전 번역 있음{{/if}}
      */
@@ -159,7 +159,7 @@ export function registerTranslationHelpers(parser: TemplateParser): void {
 
     /**
      * {{hasTranslated offset}} - 특정 청크가 번역 완료되었는지
-     * 
+     *
      * @example
      * {{#if (hasTranslated -1)}}이전 청크 번역됨{{/if}}
      */
@@ -215,13 +215,13 @@ export interface BuildPromptInput {
 
 export interface BuildPromptResult {
   success: boolean;
-  messages: OpenAIMessage[];
+  geminiMessages: GeminiConvertedMessages;
   errors: string[];
   rawChatML?: string;
 }
 
 /**
- * 프롬프트 빌드 (템플릿 렌더링 + ChatML 파싱 + OpenAI 변환)
+ * 프롬프트 빌드 (템플릿 렌더링 + ChatML 파싱 + Gemini 변환)
  */
 export function buildPrompt(input: BuildPromptInput): BuildPromptResult {
   const { template, context } = input;
@@ -241,25 +241,25 @@ export function buildPrompt(input: BuildPromptInput): BuildPromptResult {
     if (!parseResult.success) {
       return {
         success: false,
-        messages: [],
+        geminiMessages: { contents: [] },
         errors: parseResult.errors,
         rawChatML: renderedChatML,
       };
     }
 
-    // 4. ChatMessage -> OpenAIMessage 변환
-    const openAIMessages = chatMessagesToOpenAI(parseResult.messages);
+    // 4. ChatMessage -> Gemini 형식 변환
+    const geminiMessages = chatMessagesToGemini(parseResult.messages);
 
     return {
       success: true,
-      messages: openAIMessages,
+      geminiMessages,
       errors: [],
       rawChatML: renderedChatML,
     };
   } catch (error) {
     return {
       success: false,
-      messages: [],
+      geminiMessages: { contents: [] },
       errors: [error instanceof Error ? error.message : String(error)],
     };
   }
@@ -290,9 +290,7 @@ export function buildTranslationContext(input: BuildContextInput): TranslationCo
   const { session, currentChunk, allChunks } = input;
 
   // 이전 청크 찾기 (번역 완료된 것만)
-  const previousChunk = allChunks.find(
-    c => c.order === currentChunk.order - 1 && c.status === 'completed' && c.translatedText !== null
-  );
+  const previousChunk = allChunks.find(c => c.order === currentChunk.order - 1 && c.status === 'completed' && c.translatedText !== null);
 
   return {
     session: {
@@ -351,4 +349,3 @@ export function buildPromptFromDB(input: BuildPromptFromDBInput): BuildPromptRes
     context,
   });
 }
-

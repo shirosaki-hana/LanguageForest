@@ -30,6 +30,31 @@ const msStringSchema = z
   )
   .transform(val => val as ms.StringValue);
 
+// Gemini Safety Setting 스키마
+const GeminiHarmCategorySchema = z.enum([
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_CIVIC_INTEGRITY',
+]);
+
+const GeminiThresholdSchema = z.enum(['BLOCK_NONE', 'BLOCK_LOW_AND_ABOVE', 'BLOCK_MEDIUM_AND_ABOVE', 'BLOCK_ONLY_HIGH']);
+
+const GeminiSafetySettingSchema = z.object({
+  category: GeminiHarmCategorySchema,
+  threshold: GeminiThresholdSchema,
+});
+
+// 기본 Safety Settings (모든 카테고리 BLOCK_NONE)
+const DEFAULT_SAFETY_SETTINGS: z.infer<typeof GeminiSafetySettingSchema>[] = [
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+  { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+];
+
 // 환경 변수 Zod 스키마
 const envSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
@@ -42,11 +67,29 @@ const envSchema = z.object({
   SESSION_TTL: msStringSchema.default('24h'),
   RATELIMIT_MAX: z.coerce.number().positive().default(100),
   RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
+
+  // Gemini API 설정
+  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  GEMINI_SAFETY_SETTINGS: z
+    .string()
+    .default(JSON.stringify(DEFAULT_SAFETY_SETTINGS))
+    .transform(val => {
+      try {
+        return z.array(GeminiSafetySettingSchema).parse(JSON.parse(val));
+      } catch {
+        return DEFAULT_SAFETY_SETTINGS;
+      }
+    }),
 });
 
 // 출력
 export const env = envSchema.parse(process.env);
 export type Environment = z.infer<typeof envSchema>;
+
+// Gemini 타입 export
+export type GeminiHarmCategory = z.infer<typeof GeminiHarmCategorySchema>;
+export type GeminiThreshold = z.infer<typeof GeminiThresholdSchema>;
+export type GeminiSafetySetting = z.infer<typeof GeminiSafetySettingSchema>;
 
 // 유틸리티 함수
 export const isProduction = env.NODE_ENV === 'production';

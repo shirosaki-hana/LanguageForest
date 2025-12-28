@@ -132,4 +132,3 @@ function forceChunkSplit(text: string, maxSize: number): string[] {
 
   return chunks;
 }
-

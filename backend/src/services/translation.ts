@@ -1,15 +1,11 @@
 import { database } from '../database/index.js';
-import { getLLMClient } from '../external/llm.js';
+import { getGeminiClient, type GeminiClient } from '../external/gemini.js';
 import { buildPromptFromDB, DEFAULT_TRANSLATION_TEMPLATE } from '../translation/promptBuilder.js';
 import { splitIntoChunks } from '../translation/chunker.js';
 import type { ChunkInfo } from '../translation/promptBuilder.js';
 import type { TranslationSession, TranslationChunk, TranslationConfig } from '../database/prismaclient/index.js';
-import {
-  emitChunkStart,
-  emitChunkProgress,
-  emitSessionStatus,
-  emitSessionComplete,
-} from './translationEvents.js';
+import { emitChunkStart, emitChunkProgress, emitSessionStatus, emitSessionComplete } from './translationEvents.js';
+import { logger } from '../utils/index.js';
 
 // ============================================
 // 타입 정의
@@ -52,7 +48,7 @@ export interface TranslationProgress {
  */
 export async function getTranslationConfig(): Promise<TranslationConfig> {
   let config = await database.translationConfig.findFirst();
-  
+
   if (!config) {
     config = await database.translationConfig.create({
       data: {
@@ -62,16 +58,14 @@ export async function getTranslationConfig(): Promise<TranslationConfig> {
       },
     });
   }
-  
+
   return config;
 }
 
 /**
  * 전역 번역 설정 업데이트
  */
-export async function updateTranslationConfig(
-  data: { model?: string; chunkSize?: number }
-): Promise<TranslationConfig> {
+export async function updateTranslationConfig(data: { model?: string; chunkSize?: number }): Promise<TranslationConfig> {
   return database.translationConfig.upsert({
     where: { id: 1 },
     update: data,
@@ -151,7 +145,6 @@ export async function getSessionChunks(sessionId: string): Promise<TranslationCh
   });
 }
 
-
 // ============================================
 // 번역 실행
 // ============================================
@@ -219,19 +212,19 @@ export async function getTranslationProgress(sessionId: string): Promise<Transla
   const session = await database.translationSession.findUnique({
     where: { id: sessionId },
   });
-  
+
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
-  
+
   const chunks = await database.translationChunk.findMany({
     where: { sessionId },
   });
-  
+
   const completed = chunks.filter(c => c.status === 'completed').length;
   const failed = chunks.filter(c => c.status === 'failed').length;
   const pending = chunks.filter(c => c.status === 'pending' || c.status === 'processing').length;
-  
+
   return {
     sessionId,
     status: session.status,
@@ -250,12 +243,12 @@ interface TranslateSingleChunkInput {
   session: TranslationSession;
   allChunks: TranslationChunk[];
   config: TranslationConfig;
-  client: ReturnType<typeof getLLMClient>;
+  client: GeminiClient;
   template: string;
 }
 
 async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<ChunkResult> {
-  const { chunk, session, allChunks, config, client, template } = input;
+  const { chunk, session, allChunks, client, template } = input;
   const startTime = Date.now();
 
   // 청크 시작 이벤트 발송
@@ -296,13 +289,14 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
       throw new Error(`Prompt build failed: ${promptResult.errors.join(', ')}`);
     }
 
-    // LLM API 호출
-    const response = await client.chatCompletion({
-      model: config.model,
-      messages: promptResult.messages,
+    // Gemini API 호출
+    const response = await client.generateContent({
+      contents: promptResult.geminiMessages.contents,
+      systemInstruction: promptResult.geminiMessages.systemInstruction,
     });
 
-    const translatedText = response.choices[0]?.message.content ?? '';
+    const translatedText = client.extractText(response);
+    const usage = client.extractUsage(response);
     const processingTime = Date.now() - startTime;
 
     // 성공 - 청크 업데이트
@@ -312,15 +306,13 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
         status: 'completed',
         translatedText,
         processingTime,
-        tokenCount: response.usage?.total_tokens,
+        tokenCount: usage.totalTokens,
         errorMessage: null,
       },
     });
 
     // 청크 진행 상황 이벤트 발송
-    const updatedChunks = allChunks.map(c => 
-      c.id === chunk.id ? updatedChunk : c
-    );
+    const updatedChunks = allChunks.map(c => (c.id === chunk.id ? updatedChunk : c));
     emitChunkProgress(session.id, updatedChunk, updatedChunks);
 
     return {
@@ -343,9 +335,7 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
     });
 
     // 청크 진행 상황 이벤트 발송 (실패)
-    const updatedChunks = allChunks.map(c => 
-      c.id === chunk.id ? updatedChunk : c
-    );
+    const updatedChunks = allChunks.map(c => (c.id === chunk.id ? updatedChunk : c));
     emitChunkProgress(session.id, updatedChunk, updatedChunks);
 
     return {
@@ -360,10 +350,7 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
 /**
  * 단일 청크 번역 실행 (외부 API용)
  */
-export async function translateChunk(
-  chunkId: string,
-  options?: { customDict?: string; template?: string }
-): Promise<ChunkResult> {
+export async function translateChunk(chunkId: string, options?: { customDict?: string; template?: string }): Promise<ChunkResult> {
   // 청크 조회 (세션 포함)
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
@@ -382,12 +369,10 @@ export async function translateChunk(
 
   // 설정 조회
   const config = await getTranslationConfig();
-  const client = getLLMClient();
+  const client = getGeminiClient();
 
   // customDict 오버라이드 적용
-  const sessionWithOverride = options?.customDict
-    ? { ...chunk.session, customDict: options.customDict }
-    : chunk.session;
+  const sessionWithOverride = options?.customDict ? { ...chunk.session, customDict: options.customDict } : chunk.session;
 
   const result = await translateSingleChunk({
     chunk,
@@ -411,10 +396,7 @@ export async function translateChunk(
  * DB 조회를 최적화하여 성능 개선
  * 중지(pause) 시 현재 청크 완료 후 중단
  */
-export async function translateAllPendingChunks(
-  sessionId: string,
-  options?: { template?: string }
-): Promise<ChunkResult[]> {
+export async function translateAllPendingChunks(sessionId: string, options?: { template?: string }): Promise<ChunkResult[]> {
   // 세션과 청크를 한 번에 조회
   const session = await database.translationSession.findUnique({
     where: { id: sessionId },
@@ -439,9 +421,7 @@ export async function translateAllPendingChunks(
   emitSessionStatus(sessionId, 'translating', session.chunks);
 
   // pending/failed 상태의 청크들 필터링
-  const pendingChunks = session.chunks.filter(
-    c => c.status === 'pending' || c.status === 'failed'
-  );
+  const pendingChunks = session.chunks.filter(c => c.status === 'pending' || c.status === 'failed');
 
   if (pendingChunks.length === 0) {
     // 이미 모두 완료된 경우
@@ -455,7 +435,7 @@ export async function translateAllPendingChunks(
 
   // 설정을 한 번만 조회
   const config = await getTranslationConfig();
-  const client = getLLMClient();
+  const client = getGeminiClient();
   const template = options?.template ?? DEFAULT_TRANSLATION_TEMPLATE;
 
   const results: ChunkResult[] = [];
@@ -504,7 +484,7 @@ export async function translateAllPendingChunks(
   if (finalSession?.status !== 'paused') {
     const hasFailures = results.some(r => r.status === 'failed');
     const allProcessed = results.length === pendingChunks.length;
-    
+
     let finalStatus: string;
     if (!allProcessed) {
       // 일부만 처리됨 (paused 되었다가 상태가 변경된 경우)
@@ -558,10 +538,7 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
 
   // translating 상태일 때만 pause 가능
   if (session.status !== 'translating') {
-    throw Object.assign(
-      new Error(`Cannot pause session in '${session.status}' state`),
-      { statusCode: 400 }
-    );
+    throw Object.assign(new Error(`Cannot pause session in '${session.status}' state`), { statusCode: 400 });
   }
 
   const updatedSession = await database.translationSession.update({
@@ -579,10 +556,7 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
  * 번역 재개
  * paused 상태에서 pending 청크들을 다시 번역 시작
  */
-export async function resumeTranslation(
-  sessionId: string,
-  options?: { template?: string }
-): Promise<void> {
+export async function resumeTranslation(sessionId: string, options?: { template?: string }): Promise<void> {
   const session = await database.translationSession.findUnique({
     where: { id: sessionId },
   });
@@ -593,45 +567,39 @@ export async function resumeTranslation(
 
   // paused 또는 failed 상태에서만 resume 가능
   if (session.status !== 'paused' && session.status !== 'failed') {
-    throw Object.assign(
-      new Error(`Cannot resume session in '${session.status}' state`),
-      { statusCode: 400 }
-    );
+    throw Object.assign(new Error(`Cannot resume session in '${session.status}' state`), { statusCode: 400 });
   }
 
   // 비동기로 번역 재개 (응답은 즉시 반환)
   // 실제 진행 상황은 WebSocket으로 전달
   translateAllPendingChunks(sessionId, options).catch(error => {
-    console.error(`Resume translation failed for session ${sessionId}:`, error);
+    logger.error('system', `Resume translation failed for session ${sessionId}:`, error);
   });
 }
 
 /**
  * 실패한 청크 재시도
  */
-export async function retryFailedChunk(
-  chunkId: string,
-  options?: { template?: string }
-): Promise<ChunkResult> {
+export async function retryFailedChunk(chunkId: string, options?: { template?: string }): Promise<ChunkResult> {
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
     include: { session: true },
   });
-  
+
   if (!chunk) {
     throw Object.assign(new Error('Chunk not found'), { statusCode: 404 });
   }
-  
+
   if (chunk.status !== 'failed') {
     throw Object.assign(new Error('Chunk is not in failed state'), { statusCode: 400 });
   }
-  
+
   // pending으로 리셋
   await database.translationChunk.update({
     where: { id: chunkId },
     data: { status: 'pending' },
   });
-  
+
   return translateChunk(chunkId, {
     customDict: chunk.session.customDict ?? undefined,
     template: options?.template,
@@ -650,15 +618,13 @@ async function assembleTranslation(sessionId: string): Promise<void> {
     where: { sessionId },
     orderBy: { order: 'asc' },
   });
-  
+
   // 모든 청크가 완료된 경우에만 조립
   const allCompleted = chunks.every(c => c.status === 'completed');
-  
+
   if (allCompleted && chunks.length > 0) {
-    const translatedText = chunks
-      .map(c => c.translatedText ?? '')
-      .join('\n\n');
-    
+    const translatedText = chunks.map(c => c.translatedText ?? '').join('\n\n');
+
     await database.translationSession.update({
       where: { id: sessionId },
       data: {
@@ -680,6 +646,6 @@ export async function getPartialTranslation(sessionId: string): Promise<string> 
     },
     orderBy: { order: 'asc' },
   });
-  
+
   return chunks.map(c => c.translatedText ?? '').join('\n\n');
 }

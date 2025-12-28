@@ -7,17 +7,9 @@ import {
   type WsServerEvent,
   type WsClientMessage,
 } from '@languageforest/sharedtype';
-import {
-  subscribeToSession,
-  calculateProgress,
-} from '../services/translationEvents.js';
-import {
-  getSession,
-  getSessionChunks,
-  pauseTranslation,
-  resumeTranslation,
-  translateAllPendingChunks,
-} from '../services/translation.js';
+import { subscribeToSession, calculateProgress } from '../services/translationEvents.js';
+import { getSession, getSessionChunks, pauseTranslation, resumeTranslation, translateAllPendingChunks } from '../services/translation.js';
+import { logger } from '../utils/index.js';
 
 // ============================================
 // WebSocket 연결 관리
@@ -55,10 +47,7 @@ function sendError(socket: WebSocket, message: string, sessionId?: string): void
 // 메시지 핸들러
 // ============================================
 
-async function handleSubscribe(
-  client: ClientConnection,
-  sessionId: string
-): Promise<void> {
+async function handleSubscribe(client: ClientConnection, sessionId: string): Promise<void> {
   // 이미 구독 중이면 무시
   if (client.subscriptions.has(sessionId)) {
     return;
@@ -76,7 +65,7 @@ async function handleSubscribe(
   const progress = calculateProgress(chunks);
 
   // 이벤트 구독
-  const unsubscribe = subscribeToSession(sessionId, (event) => {
+  const unsubscribe = subscribeToSession(sessionId, event => {
     sendEvent(client.socket, event);
   });
   client.subscriptions.set(sessionId, unsubscribe);
@@ -101,10 +90,7 @@ async function handleSubscribe(
   sendEvent(client.socket, subscribedEvent);
 }
 
-function handleUnsubscribe(
-  client: ClientConnection,
-  sessionId: string
-): void {
+function handleUnsubscribe(client: ClientConnection, sessionId: string): void {
   const unsubscribe = client.subscriptions.get(sessionId);
   if (unsubscribe) {
     unsubscribe();
@@ -112,10 +98,7 @@ function handleUnsubscribe(
   }
 }
 
-async function handleStart(
-  client: ClientConnection,
-  sessionId: string
-): Promise<void> {
+async function handleStart(client: ClientConnection, sessionId: string): Promise<void> {
   // 구독 확인
   if (!client.subscriptions.has(sessionId)) {
     sendError(client.socket, 'Not subscribed to this session', sessionId);
@@ -133,10 +116,7 @@ async function handleStart(
   }
 }
 
-async function handlePause(
-  client: ClientConnection,
-  sessionId: string
-): Promise<void> {
+async function handlePause(client: ClientConnection, sessionId: string): Promise<void> {
   try {
     await pauseTranslation(sessionId);
   } catch (error) {
@@ -145,10 +125,7 @@ async function handlePause(
   }
 }
 
-async function handleResume(
-  client: ClientConnection,
-  sessionId: string
-): Promise<void> {
+async function handleResume(client: ClientConnection, sessionId: string): Promise<void> {
   try {
     await resumeTranslation(sessionId);
   } catch (error) {
@@ -157,10 +134,7 @@ async function handleResume(
   }
 }
 
-async function handleMessage(
-  client: ClientConnection,
-  message: WsClientMessage
-): Promise<void> {
+async function handleMessage(client: ClientConnection, message: WsClientMessage): Promise<void> {
   switch (message.type) {
     case 'subscribe':
       await handleSubscribe(client, message.sessionId);
@@ -184,7 +158,7 @@ async function handleMessage(
 // WebSocket 라우트 플러그인
 // ============================================
 
-export const websocketRoutes: FastifyPluginAsync = async (fastify) => {
+export const websocketRoutes: FastifyPluginAsync = async fastify => {
   // WebSocket 엔드포인트
   fastify.get('/ws', { websocket: true }, (socket, _request) => {
     const client: ClientConnection = {
@@ -216,11 +190,10 @@ export const websocketRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     // 에러 처리
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
+    socket.on('error', (error: Error) => {
+      logger.error('server', 'WebSocket error:', error);
     });
   });
 };
 
 export default websocketRoutes;
-

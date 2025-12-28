@@ -60,11 +60,7 @@ export function calculateProgress(chunks: TranslationChunk[]): ProgressInfo {
 /**
  * 청크 번역 시작 이벤트
  */
-export function emitChunkStart(
-  sessionId: string,
-  chunkId: string,
-  order: number
-): void {
+export function emitChunkStart(sessionId: string, chunkId: string, order: number): void {
   const event: WsChunkStartEvent = {
     type: 'chunk:start',
     sessionId,
@@ -77,13 +73,9 @@ export function emitChunkStart(
 /**
  * 청크 진행 상황 이벤트 (완료 또는 실패)
  */
-export function emitChunkProgress(
-  sessionId: string,
-  chunk: TranslationChunk,
-  allChunks: TranslationChunk[]
-): void {
+export function emitChunkProgress(sessionId: string, chunk: TranslationChunk, allChunks: TranslationChunk[]): void {
   const progress = calculateProgress(allChunks);
-  
+
   // Prisma 타입을 API 타입으로 변환
   const event: WsChunkProgressEvent = {
     type: 'chunk:progress',
@@ -110,13 +102,9 @@ export function emitChunkProgress(
 /**
  * 세션 상태 변경 이벤트
  */
-export function emitSessionStatus(
-  sessionId: string,
-  status: TranslationSessionStatus,
-  chunks: TranslationChunk[]
-): void {
+export function emitSessionStatus(sessionId: string, status: TranslationSessionStatus, chunks: TranslationChunk[]): void {
   const progress = calculateProgress(chunks);
-  
+
   const event: WsSessionStatusEvent = {
     type: 'session:status',
     sessionId,
@@ -129,10 +117,7 @@ export function emitSessionStatus(
 /**
  * 세션 완료 이벤트
  */
-export function emitSessionComplete(
-  sessionId: string,
-  session: TranslationSession
-): void {
+export function emitSessionComplete(sessionId: string, session: TranslationSession): void {
   const event: WsSessionCompleteEvent = {
     type: 'session:complete',
     sessionId,
@@ -155,16 +140,12 @@ export function emitSessionComplete(
 /**
  * 이벤트 구독 (WebSocket 핸들러에서 사용)
  */
-export function subscribeToSession(
-  sessionId: string,
-  callback: (event: WsServerEvent) => void
-): () => void {
+export function subscribeToSession(sessionId: string, callback: (event: WsServerEvent) => void): () => void {
   const emitter = getSessionEmitter(sessionId);
   emitter.on('event', callback);
-  
+
   // 구독 해제 함수 반환
   return () => {
     emitter.off('event', callback);
   };
 }
-

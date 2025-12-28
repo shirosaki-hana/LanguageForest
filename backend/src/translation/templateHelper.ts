@@ -122,4 +122,3 @@ export function registerDefaultHelpers(parser: TemplateParser): void {
 
   parser.registerHelpers(helpers);
 }
-

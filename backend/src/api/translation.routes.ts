@@ -8,8 +8,7 @@ import {
   // Translation
   StartTranslationRequestSchema,
 } from '@languageforest/sharedtype';
-import { getLLMClient } from '../external/llm.js';
-import type { ChatCompletionRequest, ChatCompletionResponse } from '../translation/types.js';
+import { getGeminiClient } from '../external/gemini.js';
 import {
   // Config
   getTranslationConfig,
@@ -35,36 +34,15 @@ import {
 
 export const translationRoutes: FastifyPluginAsync = async fastify => {
   // ==========================================
-  // LLM Provider (Mock/OpenAI)
+  // LLM Provider (Gemini)
   // ==========================================
-
-  // POST /v1/chat/completions - OpenAI 호환 엔드포인트
-  fastify.post<{
-    Body: ChatCompletionRequest;
-    Reply: ChatCompletionResponse;
-  }>('/v1/chat/completions', async (request, reply) => {
-    const client = getLLMClient();
-    
-    try {
-      const response = await client.chatCompletion(request.body);
-      return response;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      return reply.status(500).send({
-        error: {
-          message,
-          type: 'api_error',
-          code: 'internal_error',
-        },
-      } as unknown as ChatCompletionResponse);
-    }
-  });
 
   // GET /provider - 현재 LLM 프로바이더 정보
   fastify.get('/provider', async () => {
-    const client = getLLMClient();
+    const client = getGeminiClient();
     return {
-      provider: client.providerName,
+      provider: 'gemini',
+      model: client.modelName,
       status: 'ready',
     };
   });

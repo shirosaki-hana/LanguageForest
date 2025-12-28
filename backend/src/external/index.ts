@@ -1,11 +1,26 @@
-// External API clients
+// External API clients - Gemini
 export {
-  LLMClient,
-  MockLLMProvider,
-  OpenAIProvider,
-  getLLMClient,
-  setLLMClient,
-} from './llm.js';
+  GeminiClient,
+  GeminiAPIError,
+  getGeminiClient,
+  setGeminiClient,
+  // 스키마
+  GeminiPartSchema,
+  GeminiContentSchema,
+  GeminiGenerationConfigSchema,
+  GeminiSafetySettingSchema,
+  GeminiRequestSchema,
+  GeminiResponseSchema,
+} from './gemini.js';
 
-export type { LLMProvider, LLMClientConfig } from './llm.js';
-
+export type {
+  GeminiPart,
+  GeminiContent,
+  GeminiGenerationConfig,
+  GeminiSystemInstruction,
+  GeminiRequest,
+  GeminiCandidate,
+  GeminiUsageMetadata,
+  GeminiResponse,
+  GeminiClientConfig,
+} from './gemini.js';

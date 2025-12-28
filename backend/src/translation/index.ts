@@ -3,39 +3,16 @@
 // ============================================
 
 // Types
-export type {
-  ChatMessage,
-  ChatMessageRole,
-  OpenAIMessage,
-  OpenAIRole,
-  ChatCompletionRequest,
-  ChatCompletionResponse,
-  ChatCompletionChoice,
-  ChatCompletionUsage,
-} from './types.js';
+export type { ChatMessage, ChatMessageRole, GeminiConvertedMessages } from './types.js';
 
-export {
-  ChatMessageSchema,
-  ChatMessageRoleSchema,
-  OpenAIMessageSchema,
-  OpenAIRoleSchema,
-  ChatCompletionRequestSchema,
-  chatMessageToOpenAI,
-  openAIToChatMessage,
-  chatMessagesToOpenAI,
-  openAIToChatMessages,
-} from './types.js';
+export { ChatMessageSchema, ChatMessageRoleSchema, chatMessagesToGemini, geminiResponseToChatMessage } from './types.js';
 
 // ChatML Parser
 export { ChatMLParser, ParseResultSchema, ValidationResultSchema } from './chatmlParser.js';
 export type { ParseResult, ZodParseResult, ZodValidationResult } from './chatmlParser.js';
 
 // Template Parser
-export {
-  TemplateParser,
-  getDefaultTemplateParser,
-  parseTemplate,
-} from './templateParser.js';
+export { TemplateParser, getDefaultTemplateParser, parseTemplate } from './templateParser.js';
 export type {
   TemplateValue,
   TemplateObject,
@@ -68,4 +45,3 @@ export type {
   BuildContextInput,
   BuildPromptFromDBInput,
 } from './promptBuilder.js';
-

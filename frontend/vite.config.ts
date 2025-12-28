@@ -35,58 +35,58 @@ export default defineConfig(({ mode }) => {
       target: 'es2023',
       chunkSizeWarningLimit: 900,
       sourcemap: isDebug, // debug 모드에서 소스맵 생성
-      minify: !isDebug,   // debug 모드에서 난독화 비활성화
-    rollupOptions: {
-      output: {
-        // 자동 청크 분리: pnpm 구조까지 고려해 패키지 단위로 분리
-        manualChunks(id) {
-          const packageName = getPackageName(id);
-          if (!packageName) return;
+      minify: !isDebug, // debug 모드에서 난독화 비활성화
+      rollupOptions: {
+        output: {
+          // 자동 청크 분리: pnpm 구조까지 고려해 패키지 단위로 분리
+          manualChunks(id) {
+            const packageName = getPackageName(id);
+            if (!packageName) return;
 
-          // React 코어 + React를 peerDependency로 사용하는 라이브러리들
-          // MUI + Emotion도 React 컨텍스트를 많이 사용하므로 통합
-          if (
-            packageName === 'react' ||
-            packageName === 'react-dom' ||
-            packageName === 'scheduler' ||
-            packageName === 'react-router-dom' ||
-            packageName === 'react-router' ||
-            packageName === 'react-i18next' ||
-            packageName === 'use-sync-external-store' ||
-            packageName.startsWith('@mui/') ||
-            packageName.startsWith('@emotion/')
-          ) {
-            return 'vendor-react';
-          }
+            // React 코어 + React를 peerDependency로 사용하는 라이브러리들
+            // MUI + Emotion도 React 컨텍스트를 많이 사용하므로 통합
+            if (
+              packageName === 'react' ||
+              packageName === 'react-dom' ||
+              packageName === 'scheduler' ||
+              packageName === 'react-router-dom' ||
+              packageName === 'react-router' ||
+              packageName === 'react-i18next' ||
+              packageName === 'use-sync-external-store' ||
+              packageName.startsWith('@mui/') ||
+              packageName.startsWith('@emotion/')
+            ) {
+              return 'vendor-react';
+            }
 
-          // HTTP 클라이언트
-          if (packageName === 'axios') {
-            return 'vendor-http';
-          }
+            // HTTP 클라이언트
+            if (packageName === 'axios') {
+              return 'vendor-http';
+            }
 
-          // i18n 코어 (react-i18next 제외 - React 청크에 포함)
-          if (packageName === 'i18next') {
-            return 'vendor-i18n';
-          }
+            // i18n 코어 (react-i18next 제외 - React 청크에 포함)
+            if (packageName === 'i18next') {
+              return 'vendor-i18n';
+            }
 
-          // 상태 관리 (zustand는 React 컨텍스트를 직접 사용하지 않으므로 분리 가능)
-          if (packageName === 'zustand') {
-            return 'vendor-state';
-          }
+            // 상태 관리 (zustand는 React 컨텍스트를 직접 사용하지 않으므로 분리 가능)
+            if (packageName === 'zustand') {
+              return 'vendor-state';
+            }
 
-          return;
+            return;
+          },
         },
       },
     },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:4001',
-        changeOrigin: true,
-        secure: false,
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:4001',
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
   };
 });

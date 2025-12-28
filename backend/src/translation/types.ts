@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { GeminiContent, GeminiSystemInstruction } from '../external/gemini.js';
 
 // ============================================
 // ChatMessage 타입 정의
@@ -19,108 +20,52 @@ export const ChatMessageSchema = z.object({
 });
 
 // ============================================
-// OpenAI 호환 타입 정의
+// Gemini 변환 결과 타입
 // ============================================
 
-export const OpenAIRoleSchema = z.enum(['system', 'user', 'assistant']);
-
-export type OpenAIRole = z.infer<typeof OpenAIRoleSchema>;
-
-export interface OpenAIMessage {
-  role: OpenAIRole;
-  content: string;
-}
-
-export const OpenAIMessageSchema = z.object({
-  role: OpenAIRoleSchema,
-  content: z.string(),
-});
-
-// Chat Completion 요청
-export interface ChatCompletionRequest {
-  model: string;
-  messages: OpenAIMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  frequency_penalty?: number;
-  presence_penalty?: number;
-  stop?: string | string[];
-}
-
-export const ChatCompletionRequestSchema = z.object({
-  model: z.string(),
-  messages: z.array(OpenAIMessageSchema),
-  temperature: z.number().min(0).max(2).optional(),
-  max_tokens: z.number().int().positive().optional(),
-  top_p: z.number().min(0).max(1).optional(),
-  frequency_penalty: z.number().min(-2).max(2).optional(),
-  presence_penalty: z.number().min(-2).max(2).optional(),
-  stop: z.union([z.string(), z.array(z.string())]).optional(),
-});
-
-// Chat Completion 응답
-export interface ChatCompletionChoice {
-  index: number;
-  message: {
-    role: 'assistant';
-    content: string;
-  };
-  finish_reason: 'stop' | 'length' | 'content_filter' | null;
-}
-
-export interface ChatCompletionUsage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-export interface ChatCompletionResponse {
-  id: string;
-  object: 'chat.completion';
-  created: number;
-  model: string;
-  choices: ChatCompletionChoice[];
-  usage: ChatCompletionUsage;
+export interface GeminiConvertedMessages {
+  contents: GeminiContent[];
+  systemInstruction?: GeminiSystemInstruction;
 }
 
 // ============================================
-// ChatMessage <-> OpenAI 변환 유틸
+// ChatMessage <-> Gemini 변환 유틸
 // ============================================
 
-const roleMapping: Record<ChatMessageRole, OpenAIRole> = {
-  SYSTEM: 'system',
-  USER: 'user',
-  ASSISTANT: 'assistant',
-  MODEL: 'assistant', // MODEL은 assistant로 매핑
-  ALTERNATIVE: 'assistant', // ALTERNATIVE도 assistant로 매핑
-};
+/**
+ * ChatMessage를 Gemini 형식으로 변환
+ * - SYSTEM 메시지는 systemInstruction으로 분리
+ * - USER, ASSISTANT, MODEL, ALTERNATIVE는 contents로 변환
+ */
+export function chatMessagesToGemini(messages: ChatMessage[]): GeminiConvertedMessages {
+  // SYSTEM 메시지 분리 (첫 번째만 사용)
+  const systemMessage = messages.find(m => m.role === 'SYSTEM');
+  const nonSystemMessages = messages.filter(m => m.role !== 'SYSTEM');
 
-const reverseRoleMapping: Record<OpenAIRole, ChatMessageRole> = {
-  system: 'SYSTEM',
-  user: 'USER',
-  assistant: 'ASSISTANT',
-};
+  // Gemini contents 생성
+  const contents: GeminiContent[] = nonSystemMessages.map(m => ({
+    role: m.role === 'USER' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
 
-export function chatMessageToOpenAI(message: ChatMessage): OpenAIMessage {
+  // 결과 반환
+  const result: GeminiConvertedMessages = { contents };
+
+  if (systemMessage) {
+    result.systemInstruction = {
+      parts: [{ text: systemMessage.content }],
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Gemini 응답을 ChatMessage로 변환
+ */
+export function geminiResponseToChatMessage(text: string): ChatMessage {
   return {
-    role: roleMapping[message.role],
-    content: message.content,
+    role: 'MODEL',
+    content: text,
   };
 }
-
-export function openAIToChatMessage(message: OpenAIMessage): ChatMessage {
-  return {
-    role: reverseRoleMapping[message.role],
-    content: message.content,
-  };
-}
-
-export function chatMessagesToOpenAI(messages: ChatMessage[]): OpenAIMessage[] {
-  return messages.map(chatMessageToOpenAI);
-}
-
-export function openAIToChatMessages(messages: OpenAIMessage[]): ChatMessage[] {
-  return messages.map(openAIToChatMessage);
-}
-

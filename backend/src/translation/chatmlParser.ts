@@ -323,4 +323,3 @@ export class ChatMLParser {
     return merged;
   }
 }
-
