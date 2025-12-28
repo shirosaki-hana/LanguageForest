@@ -15,5 +15,8 @@
   "scripts": {
     "build": "pnpm clean && pnpm -w exec tsc -p packages/sharedtype/tsconfig.json",
     "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^9.3.0"
   }
 }

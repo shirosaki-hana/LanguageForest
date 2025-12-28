@@ -160,15 +160,49 @@ export default {
       charCount: '{{count}}자',
       wordCount: '{{count}}단어',
 
+      // File Upload
+      dropFileHere: '파일을 여기에 놓으세요',
+      dropFileDescription: '.txt 파일을 드래그하거나 클릭하여 업로드하세요',
+      selectFile: '파일 선택',
+      supportedFormats: '지원 형식: .txt (UTF-8)',
+      uploading: '업로드 중...',
+      fileUploaded: '파일이 업로드되었습니다',
+      replaceFile: '파일 교체',
+      totalChunks: '전체 {{count}}개 청크',
+
       // Progress
       chunkProgress: '청크 진행 상황',
+      chunkList: '청크 목록',
       chunks: '청크',
       completed: '완료',
       failed: '실패',
+      pending: '대기',
+      complete: '완료',
       clickToRetry: '클릭하여 재시도',
       estimatedRemaining: '예상 남은 시간',
       estimatedSeconds: '약 {{count}}초',
       estimatedMinutes: '약 {{count}}분',
+      noChunks: '청크가 없습니다',
+      notTranslatedYet: '아직 번역되지 않았습니다',
+      retryCount: '재시도 {{count}}회',
+      error: '오류',
+
+      // Chunk status
+      status: '상태',
+      chunkStatus: {
+        pending: '대기',
+        processing: '처리 중',
+        completed: '완료',
+        failed: '실패',
+      },
+
+      // Filter
+      filter: '필터',
+      all: '전체',
+      time: '시간',
+      actions: '작업',
+      retryChunk: '청크 재시도',
+      translateChunk: '청크 번역',
 
       // Controls
       startTranslation: '번역 시작',
@@ -177,6 +211,9 @@ export default {
       retryFailed: '실패 청크 재시도',
       translating: '번역 중...',
       settings: '설정',
+      template: '프롬프트 템플릿',
+      download: '다운로드',
+      downloadStarted: '다운로드가 시작되었습니다',
 
       // Config
       model: 'AI 모델',
@@ -185,8 +222,8 @@ export default {
       chunkSizeHelp: '청크가 클수록 문맥을 더 잘 이해하지만, 오류 발생 시 재시도 비용이 커집니다',
       configUpdated: '설정이 저장되었습니다',
 
-      // Status
-      status: {
+      // Session Status
+      sessionStatus: {
         draft: '초안',
         ready: '준비됨',
         translating: '번역 중',
@@ -208,10 +245,18 @@ export default {
         updateSessionFailed: '세션 수정에 실패했습니다',
         deleteSessionFailed: '세션 삭제에 실패했습니다',
         noSourceText: '번역할 텍스트를 입력하세요',
+        noSessionSelected: '세션을 먼저 선택하세요',
+        noTemplateSelected: '프롬프트 템플릿을 선택하세요',
+        invalidSessionState: '현재 세션 상태에서는 번역을 시작할 수 없습니다',
         startFailed: '번역 시작에 실패했습니다',
         retryFailed: '재시도에 실패했습니다',
         loadConfigFailed: '설정을 불러오는데 실패했습니다',
         updateConfigFailed: '설정 저장에 실패했습니다',
+        loadTemplatesFailed: '템플릿 목록을 불러오는데 실패했습니다',
+        uploadFailed: '파일 업로드에 실패했습니다',
+        downloadFailed: '다운로드에 실패했습니다',
+        loadChunksFailed: '청크 목록을 불러오는데 실패했습니다',
+        translateChunkFailed: '청크 번역에 실패했습니다',
       },
     },
   },

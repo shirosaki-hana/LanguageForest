@@ -7,6 +7,10 @@ import {
   UpdateSessionRequestSchema,
   // Translation
   StartTranslationRequestSchema,
+  TranslateRequestSchema,
+  TranslateChunkRequestSchema,
+  // Pagination
+  GetSessionChunksQuerySchema,
 } from '@languageforest/sharedtype';
 import { getGeminiClient } from '../external/gemini.js';
 import {
@@ -20,19 +24,30 @@ import {
   updateSession,
   deleteSession,
   getSessionChunks,
+  getSessionChunksPaginated,
+  // File upload/download
+  uploadFileAndChunk,
+  getTranslationForDownload,
   // Translation
   startTranslation,
   getTranslationProgress,
   translateAllPendingChunks,
+  translateChunk,
   retryFailedChunk,
   getPartialTranslation,
 } from '../services/translation.js';
+import { templateRoutes } from './template.routes.js';
 
 // ============================================
 // 번역 API 라우트
 // ============================================
 
 export const translationRoutes: FastifyPluginAsync = async fastify => {
+  // ==========================================
+  // 템플릿 라우트 등록
+  // ==========================================
+  await fastify.register(templateRoutes);
+
   // ==========================================
   // LLM Provider (Gemini)
   // ==========================================
@@ -109,18 +124,71 @@ export const translationRoutes: FastifyPluginAsync = async fastify => {
     return reply.status(204).send();
   });
 
-  // GET /sessions/:id/chunks - 세션의 청크 목록
+  // GET /sessions/:id/chunks - 세션의 청크 목록 (페이지네이션 지원)
   fastify.get<{
     Params: { id: string };
+    Querystring: { page?: string; limit?: string; status?: string };
   }>('/sessions/:id/chunks', async request => {
+    const { page, limit, status } = request.query;
+
+    // 페이지네이션 파라미터가 있으면 페이지네이션 응답
+    if (page || limit) {
+      const query = GetSessionChunksQuerySchema.parse({
+        page: page ?? 1,
+        limit: limit ?? 20,
+        status,
+      });
+      return getSessionChunksPaginated(request.params.id, query);
+    }
+
+    // 파라미터가 없으면 전체 목록 (하위 호환성)
     return getSessionChunks(request.params.id);
+  });
+
+  // POST /sessions/:id/upload - 파일 업로드 및 청킹
+  fastify.post<{
+    Params: { id: string };
+  }>('/sessions/:id/upload', async (request, reply) => {
+    const data = await request.file();
+
+    if (!data) {
+      return reply.status(400).send({ error: 'No file uploaded' });
+    }
+
+    // 파일 내용 읽기
+    const buffer = await data.toBuffer();
+    const content = buffer.toString('utf-8');
+    const fileName = data.filename;
+
+    // 파일 확장자 검증
+    if (!fileName.endsWith('.txt')) {
+      return reply.status(400).send({ error: 'Only .txt files are allowed' });
+    }
+
+    return uploadFileAndChunk({
+      sessionId: request.params.id,
+      fileName,
+      content,
+    });
+  });
+
+  // GET /sessions/:id/download - 번역문 다운로드
+  fastify.get<{
+    Params: { id: string };
+  }>('/sessions/:id/download', async (request, reply) => {
+    const result = await getTranslationForDownload(request.params.id);
+
+    return reply
+      .header('Content-Type', 'text/plain; charset=utf-8')
+      .header('Content-Disposition', `attachment; filename="${encodeURIComponent(result.fileName)}"`)
+      .send(result.content);
   });
 
   // ==========================================
   // 번역 실행
   // ==========================================
 
-  // POST /sessions/:id/start - 번역 시작 (청킹)
+  // POST /sessions/:id/start - 번역 시작 (청킹만 수행)
   fastify.post<{
     Params: { id: string };
     Body: { sourceText: string };
@@ -132,11 +200,13 @@ export const translationRoutes: FastifyPluginAsync = async fastify => {
     });
   });
 
-  // POST /sessions/:id/translate - 모든 pending 청크 번역
+  // POST /sessions/:id/translate - 모든 pending 청크 번역 실행
   fastify.post<{
     Params: { id: string };
+    Body: { templateId: string };
   }>('/sessions/:id/translate', async request => {
-    return translateAllPendingChunks(request.params.id);
+    const data = TranslateRequestSchema.parse(request.body);
+    return translateAllPendingChunks(request.params.id, { templateId: data.templateId });
   });
 
   // GET /sessions/:id/progress - 번역 진행 상황
@@ -157,8 +227,19 @@ export const translationRoutes: FastifyPluginAsync = async fastify => {
   // POST /chunks/:id/retry - 실패한 청크 재시도
   fastify.post<{
     Params: { id: string };
+    Body: { templateId: string };
   }>('/chunks/:id/retry', async request => {
-    return retryFailedChunk(request.params.id);
+    const data = TranslateRequestSchema.parse(request.body);
+    return retryFailedChunk(request.params.id, { templateId: data.templateId });
+  });
+
+  // POST /chunks/:id/translate - 단일 청크 번역 (상태 무관)
+  fastify.post<{
+    Params: { id: string };
+    Body: { templateId: string };
+  }>('/chunks/:id/translate', async request => {
+    const data = TranslateChunkRequestSchema.parse(request.body);
+    return translateChunk(request.params.id, { templateId: data.templateId });
   });
 };
 

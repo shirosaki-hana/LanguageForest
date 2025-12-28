@@ -58,9 +58,11 @@ export const TranslationSessionSchema = z.object({
   title: z.string(),
   memo: z.string().nullable(),
   customDict: z.string().nullable(),
+  originalFileName: z.string().nullable().optional(),
   sourceText: z.string().nullable(),
   translatedText: z.string().nullable(),
   status: TranslationSessionStatusSchema,
+  totalChunks: z.number().int().default(0),
   createdAt: z.string(), // ISO 8601
   updatedAt: z.string(), // ISO 8601
 });
@@ -118,19 +120,61 @@ export const TranslationChunkSchema = z.object({
 });
 export type TranslationChunk = z.infer<typeof TranslationChunkSchema>;
 
-// GET /sessions/:id/chunks 응답
+// GET /sessions/:id/chunks 응답 (기본 - 배열)
 export const GetSessionChunksResponseSchema = z.array(TranslationChunkSchema);
 export type GetSessionChunksResponse = z.infer<typeof GetSessionChunksResponseSchema>;
+
+// GET /sessions/:id/chunks 요청 (페이지네이션)
+export const GetSessionChunksQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  status: TranslationChunkStatusSchema.optional(),
+});
+export type GetSessionChunksQuery = z.infer<typeof GetSessionChunksQuerySchema>;
+
+// GET /sessions/:id/chunks 응답 (페이지네이션)
+export const PaginatedChunksResponseSchema = z.object({
+  chunks: z.array(TranslationChunkSchema),
+  pagination: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int(),
+  }),
+});
+export type PaginatedChunksResponse = z.infer<typeof PaginatedChunksResponseSchema>;
+
+// ============================================
+// 파일 업로드/다운로드
+// ============================================
+
+// POST /sessions/:id/upload 응답
+export const FileUploadResponseSchema = z.object({
+  session: TranslationSessionSchema,
+  totalChunks: z.number().int(),
+  originalFileName: z.string(),
+  fileSize: z.number().int(),
+  charCount: z.number().int(),
+});
+export type FileUploadResponse = z.infer<typeof FileUploadResponseSchema>;
+
+// GET /sessions/:id/download - 파일 다운로드 (바이너리 응답, 스키마 없음)
 
 // ============================================
 // 번역 실행
 // ============================================
 
-// POST /sessions/:id/start 요청
+// POST /sessions/:id/start 요청 (청킹만 수행) - deprecated, use upload instead
 export const StartTranslationRequestSchema = z.object({
   sourceText: z.string().min(1),
 });
 export type StartTranslationRequest = z.infer<typeof StartTranslationRequestSchema>;
+
+// POST /sessions/:id/translate 요청 (번역 실행)
+export const TranslateRequestSchema = z.object({
+  templateId: z.string(),
+});
+export type TranslateRequest = z.infer<typeof TranslateRequestSchema>;
 
 // POST /sessions/:id/start 응답
 export const StartTranslationResponseSchema = z.object({
@@ -172,6 +216,16 @@ export type PartialTranslationResponse = z.infer<typeof PartialTranslationRespon
 export const RetryChunkResponseSchema = TranslationChunkSchema;
 export type RetryChunkResponse = z.infer<typeof RetryChunkResponseSchema>;
 
+// POST /chunks/:id/translate 요청 (단일 청크 번역)
+export const TranslateChunkRequestSchema = z.object({
+  templateId: z.string(),
+});
+export type TranslateChunkRequest = z.infer<typeof TranslateChunkRequestSchema>;
+
+// POST /chunks/:id/translate 응답
+export const TranslateChunkResponseSchema = TranslationChunkSchema;
+export type TranslateChunkResponse = z.infer<typeof TranslateChunkResponseSchema>;
+
 // ============================================
 // LLM Provider
 // ============================================
@@ -182,6 +236,29 @@ export const GetProviderResponseSchema = z.object({
   status: z.enum(['ready', 'error']),
 });
 export type GetProviderResponse = z.infer<typeof GetProviderResponseSchema>;
+
+// ============================================
+// 프롬프트 템플릿
+// ============================================
+
+export const PromptTemplateSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  sourceLanguage: z.string(),
+  targetLanguage: z.string(),
+  description: z.string().optional(),
+});
+export type PromptTemplate = z.infer<typeof PromptTemplateSchema>;
+
+// GET /templates 응답
+export const ListTemplatesResponseSchema = z.array(PromptTemplateSchema);
+export type ListTemplatesResponse = z.infer<typeof ListTemplatesResponseSchema>;
+
+// GET /templates/:id 응답
+export const GetTemplateResponseSchema = PromptTemplateSchema.extend({
+  content: z.string(),
+});
+export type GetTemplateResponse = z.infer<typeof GetTemplateResponseSchema>;
 
 // ============================================
 // 에러 응답
@@ -232,6 +309,7 @@ export type WsUnsubscribeMessage = z.infer<typeof WsUnsubscribeMessageSchema>;
 export const WsStartMessageSchema = z.object({
   type: z.literal('start'),
   sessionId: z.string(),
+  templateId: z.string(),
 });
 export type WsStartMessage = z.infer<typeof WsStartMessageSchema>;
 
@@ -246,6 +324,7 @@ export type WsPauseMessage = z.infer<typeof WsPauseMessageSchema>;
 export const WsResumeMessageSchema = z.object({
   type: z.literal('resume'),
   sessionId: z.string(),
+  templateId: z.string(),
 });
 export type WsResumeMessage = z.infer<typeof WsResumeMessageSchema>;
 

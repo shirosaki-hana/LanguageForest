@@ -59,21 +59,21 @@ type StatusConfigValue = {
   icon: React.ReactNode;
   color: string;
   labelKey:
-    | 'translation.status.draft'
-    | 'translation.status.ready'
-    | 'translation.status.translating'
-    | 'translation.status.paused'
-    | 'translation.status.completed'
-    | 'translation.status.failed';
+    | 'translation.sessionStatus.draft'
+    | 'translation.sessionStatus.ready'
+    | 'translation.sessionStatus.translating'
+    | 'translation.sessionStatus.paused'
+    | 'translation.sessionStatus.completed'
+    | 'translation.sessionStatus.failed';
 };
 
 const statusConfig: Record<TranslationSessionStatus, StatusConfigValue> = {
-  draft: { icon: <PendingIcon fontSize='small' />, color: 'text.secondary', labelKey: 'translation.status.draft' },
-  ready: { icon: <PendingIcon fontSize='small' />, color: 'info.main', labelKey: 'translation.status.ready' },
-  translating: { icon: <PlayIcon fontSize='small' />, color: 'primary.main', labelKey: 'translation.status.translating' },
-  paused: { icon: <PauseIcon fontSize='small' />, color: 'warning.main', labelKey: 'translation.status.paused' },
-  completed: { icon: <CompleteIcon fontSize='small' />, color: 'success.main', labelKey: 'translation.status.completed' },
-  failed: { icon: <ErrorIcon fontSize='small' />, color: 'error.main', labelKey: 'translation.status.failed' },
+  draft: { icon: <PendingIcon fontSize='small' />, color: 'text.secondary', labelKey: 'translation.sessionStatus.draft' },
+  ready: { icon: <PendingIcon fontSize='small' />, color: 'info.main', labelKey: 'translation.sessionStatus.ready' },
+  translating: { icon: <PlayIcon fontSize='small' />, color: 'primary.main', labelKey: 'translation.sessionStatus.translating' },
+  paused: { icon: <PauseIcon fontSize='small' />, color: 'warning.main', labelKey: 'translation.sessionStatus.paused' },
+  completed: { icon: <CompleteIcon fontSize='small' />, color: 'success.main', labelKey: 'translation.sessionStatus.completed' },
+  failed: { icon: <ErrorIcon fontSize='small' />, color: 'error.main', labelKey: 'translation.sessionStatus.failed' },
 };
 
 // ============================================

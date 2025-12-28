@@ -160,15 +160,49 @@ export default {
       charCount: '{{count}} chars',
       wordCount: '{{count}} words',
 
+      // File Upload
+      dropFileHere: 'Drop file here',
+      dropFileDescription: 'Drag and drop a .txt file or click to upload',
+      selectFile: 'Select File',
+      supportedFormats: 'Supported formats: .txt (UTF-8)',
+      uploading: 'Uploading...',
+      fileUploaded: 'File uploaded',
+      replaceFile: 'Replace File',
+      totalChunks: '{{count}} chunks total',
+
       // Progress
       chunkProgress: 'Chunk Progress',
+      chunkList: 'Chunk List',
       chunks: 'chunks',
       completed: 'Completed',
       failed: 'Failed',
+      pending: 'Pending',
+      complete: 'Complete',
       clickToRetry: 'Click to retry',
       estimatedRemaining: 'Estimated remaining',
       estimatedSeconds: '~{{count}}s',
       estimatedMinutes: '~{{count}}min',
+      noChunks: 'No chunks',
+      notTranslatedYet: 'Not translated yet',
+      retryCount: '{{count}} retries',
+      error: 'Error',
+
+      // Chunk status
+      status: 'Status',
+      chunkStatus: {
+        pending: 'Pending',
+        processing: 'Processing',
+        completed: 'Completed',
+        failed: 'Failed',
+      },
+
+      // Filter
+      filter: 'Filter',
+      all: 'All',
+      time: 'Time',
+      actions: 'Actions',
+      retryChunk: 'Retry Chunk',
+      translateChunk: 'Translate Chunk',
 
       // Controls
       startTranslation: 'Start Translation',
@@ -177,6 +211,9 @@ export default {
       retryFailed: 'Retry Failed',
       translating: 'Translating...',
       settings: 'Settings',
+      template: 'Prompt Template',
+      download: 'Download',
+      downloadStarted: 'Download started',
 
       // Config
       model: 'AI Model',
@@ -185,8 +222,8 @@ export default {
       chunkSizeHelp: 'Larger chunks preserve more context, but increase retry cost on errors',
       configUpdated: 'Settings saved',
 
-      // Status
-      status: {
+      // Session Status
+      sessionStatus: {
         draft: 'Draft',
         ready: 'Ready',
         translating: 'Translating',
@@ -208,10 +245,18 @@ export default {
         updateSessionFailed: 'Failed to update session',
         deleteSessionFailed: 'Failed to delete session',
         noSourceText: 'Please enter text to translate',
+        noSessionSelected: 'Please select a session first',
+        noTemplateSelected: 'Please select a prompt template',
+        invalidSessionState: 'Cannot start translation in current session state',
         startFailed: 'Failed to start translation',
         retryFailed: 'Retry failed',
         loadConfigFailed: 'Failed to load settings',
         updateConfigFailed: 'Failed to save settings',
+        loadTemplatesFailed: 'Failed to load templates',
+        uploadFailed: 'File upload failed',
+        downloadFailed: 'Download failed',
+        loadChunksFailed: 'Failed to load chunks',
+        translateChunkFailed: 'Failed to translate chunk',
       },
     },
   },

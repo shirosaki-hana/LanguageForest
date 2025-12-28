@@ -7,6 +7,8 @@ import type {
   CreateSessionRequest,
   UpdateSessionRequest,
   WsServerEvent,
+  PromptTemplate,
+  TranslationChunkStatus,
 } from '@languageforest/sharedtype';
 import * as api from '../api/translation';
 import { translationWs } from '../api/websocket';
@@ -15,6 +17,13 @@ import { snackbar } from './snackbarStore';
 // ============================================
 // 타입 정의
 // ============================================
+
+interface ChunkPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 interface TranslationState {
   // 세션 목록
@@ -27,19 +36,29 @@ interface TranslationState {
   chunks: TranslationChunk[];
   sessionLoading: boolean;
 
+  // 청크 페이지네이션
+  chunkPagination: ChunkPagination | null;
+  chunkFilter: TranslationChunkStatus | null;
+
   // 진행 상황 (WebSocket)
   progress: ProgressInfo | null;
   isTranslating: boolean;
   isPaused: boolean;
 
+  // 파일 업로드 상태
+  isUploading: boolean;
+  uploadError: string | null;
+
   // 전역 설정
   config: TranslationConfig | null;
 
-  // 원문 입력
-  sourceText: string;
-
   // WebSocket 상태
   wsConnected: boolean;
+
+  // 템플릿
+  templates: PromptTemplate[];
+  templatesLoading: boolean;
+  selectedTemplateId: string | null;
 
   // 액션
   loadSessions: () => Promise<void>;
@@ -47,13 +66,28 @@ interface TranslationState {
   selectSession: (id: string | null) => Promise<void>;
   updateSession: (id: string, data: UpdateSessionRequest) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
-  setSourceText: (text: string) => void;
+
+  // 파일 업로드/다운로드
+  uploadFile: (file: File) => Promise<void>;
+  downloadTranslation: () => Promise<void>;
+
+  // 청크 관리
+  loadChunks: (options?: { page?: number; status?: TranslationChunkStatus | null }) => Promise<void>;
+  translateSingleChunk: (chunkId: string) => Promise<void>;
+  retryChunk: (chunkId: string) => Promise<void>;
+
+  // 번역 제어
   startTranslation: () => Promise<void>;
   pauseTranslation: () => void;
   resumeTranslation: () => void;
-  retryChunk: (chunkId: string) => Promise<void>;
+
+  // 설정
   loadConfig: () => Promise<void>;
   updateConfig: (data: { model?: string; chunkSize?: number }) => Promise<void>;
+  loadTemplates: () => Promise<void>;
+  selectTemplate: (id: string) => void;
+
+  // WebSocket
   connectWs: () => void;
   disconnectWs: () => void;
   reset: () => void;
@@ -132,12 +166,18 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
     currentSession: null,
     chunks: [],
     sessionLoading: false,
+    chunkPagination: null,
+    chunkFilter: null,
     progress: null,
     isTranslating: false,
     isPaused: false,
+    isUploading: false,
+    uploadError: null,
     config: null,
-    sourceText: '',
     wsConnected: false,
+    templates: [],
+    templatesLoading: false,
+    selectedTemplateId: null,
 
     // 세션 목록 로드
     loadSessions: async () => {
@@ -180,10 +220,11 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
           currentSessionId: null,
           currentSession: null,
           chunks: [],
+          chunkPagination: null,
+          chunkFilter: null,
           progress: null,
           isTranslating: false,
           isPaused: false,
-          sourceText: '',
         });
         return;
       }
@@ -191,16 +232,21 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
       set({ sessionLoading: true, currentSessionId: id });
 
       try {
-        const [session, chunks] = await Promise.all([api.getSession(id), api.getSessionChunks(id)]);
+        const session = await api.getSession(id);
 
         set({
           currentSession: session,
-          chunks,
-          sourceText: session.sourceText || '',
           isTranslating: session.status === 'translating',
           isPaused: session.status === 'paused',
           sessionLoading: false,
         });
+
+        // 청크가 있으면 페이지네이션으로 로드
+        if (session.totalChunks > 0) {
+          await get().loadChunks({ page: 1 });
+        } else {
+          set({ chunks: [], chunkPagination: null });
+        }
 
         // WebSocket 구독
         if (state.wsConnected) {
@@ -248,42 +294,148 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
       }
     },
 
-    // 원문 설정
-    setSourceText: text => {
-      set({ sourceText: text });
+    // 파일 업로드
+    uploadFile: async file => {
+      const state = get();
+      if (!state.currentSessionId) {
+        snackbar.error('translation.errors.noSessionSelected', true);
+        return;
+      }
+
+      set({ isUploading: true, uploadError: null });
+
+      try {
+        const result = await api.uploadFile(state.currentSessionId, file);
+
+        set({
+          currentSession: result.session,
+          isUploading: false,
+        });
+
+        // 세션 목록 업데이트
+        set(s => ({
+          sessions: s.sessions.map(sess => (sess.id === result.session.id ? result.session : sess)),
+        }));
+
+        // 청크 로드
+        await get().loadChunks({ page: 1 });
+
+        snackbar.success('translation.fileUploaded', true);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Upload failed';
+        set({ isUploading: false, uploadError: message });
+        snackbar.error('translation.errors.uploadFailed', true);
+      }
     },
 
-    // 번역 시작
-    startTranslation: async () => {
+    // 번역문 다운로드
+    downloadTranslation: async () => {
       const state = get();
-      if (!state.currentSessionId || !state.sourceText.trim()) {
-        snackbar.error('translation.errors.noSourceText', true);
+      if (!state.currentSessionId || !state.currentSession) {
         return;
       }
 
       try {
-        // 청킹 시작
-        const progress = await api.startTranslation(state.currentSessionId, state.sourceText);
+        const blob = await api.downloadTranslation(state.currentSessionId);
 
-        // 청크 로드
-        const chunks = await api.getSessionChunks(state.currentSessionId);
-        set({
-          chunks,
-          progress: {
-            completed: progress.completedChunks,
-            failed: progress.failedChunks,
-            pending: progress.pendingChunks,
-            total: progress.totalChunks,
-            percent: 0,
-          },
+        // 파일 다운로드 트리거
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const originalName = state.currentSession.originalFileName || state.currentSession.title;
+        const lastDot = originalName.lastIndexOf('.');
+        const fileName =
+          lastDot > 0
+            ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}`
+            : `${originalName}_translated.txt`;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        snackbar.success('translation.downloadStarted', true);
+      } catch {
+        snackbar.error('translation.errors.downloadFailed', true);
+      }
+    },
+
+    // 청크 로드 (페이지네이션)
+    loadChunks: async options => {
+      const state = get();
+      if (!state.currentSessionId) return;
+
+      const page = options?.page ?? state.chunkPagination?.page ?? 1;
+      const status = options?.status !== undefined ? options.status : state.chunkFilter;
+
+      try {
+        const result = await api.getSessionChunksPaginated(state.currentSessionId, {
+          page,
+          limit: 20,
+          status: status ?? undefined,
         });
 
+        set({
+          chunks: result.chunks,
+          chunkPagination: result.pagination,
+          chunkFilter: status,
+          progress: {
+            completed: result.chunks.filter(c => c.status === 'completed').length,
+            failed: result.chunks.filter(c => c.status === 'failed').length,
+            pending: result.chunks.filter(c => c.status === 'pending' || c.status === 'processing').length,
+            total: result.pagination.total,
+            percent: Math.round(
+              (result.chunks.filter(c => c.status === 'completed').length / result.pagination.total) * 100
+            ),
+          },
+        });
+      } catch {
+        snackbar.error('translation.errors.loadChunksFailed', true);
+      }
+    },
+
+    // 단일 청크 번역
+    translateSingleChunk: async chunkId => {
+      const state = get();
+      if (!state.selectedTemplateId) {
+        snackbar.error('translation.errors.noTemplateSelected', true);
+        return;
+      }
+
+      try {
+        const chunk = await api.translateSingleChunk(chunkId, state.selectedTemplateId);
+        set(s => ({
+          chunks: s.chunks.map(c => (c.id === chunkId ? chunk : c)),
+        }));
+      } catch {
+        snackbar.error('translation.errors.translateChunkFailed', true);
+      }
+    },
+
+    // 번역 시작 (업로드된 파일 기반)
+    startTranslation: async () => {
+      const state = get();
+      if (!state.currentSessionId || !state.currentSession) {
+        return;
+      }
+
+      if (state.currentSession.status !== 'ready' && state.currentSession.status !== 'paused') {
+        snackbar.error('translation.errors.invalidSessionState', true);
+        return;
+      }
+
+      if (!state.selectedTemplateId) {
+        snackbar.error('translation.errors.noTemplateSelected', true);
+        return;
+      }
+
+      try {
         // WebSocket으로 번역 시작
         if (state.wsConnected) {
-          translationWs.start(state.currentSessionId);
+          translationWs.start(state.currentSessionId, state.selectedTemplateId);
         } else {
           // WebSocket 없으면 REST로
-          await api.translateAll(state.currentSessionId);
+          await api.translateAll(state.currentSessionId, state.selectedTemplateId);
         }
 
         set({ isTranslating: true });
@@ -303,15 +455,21 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
     // 번역 재개
     resumeTranslation: () => {
       const state = get();
-      if (state.currentSessionId && state.wsConnected) {
-        translationWs.resume(state.currentSessionId);
+      if (state.currentSessionId && state.wsConnected && state.selectedTemplateId) {
+        translationWs.resume(state.currentSessionId, state.selectedTemplateId);
       }
     },
 
     // 청크 재시도
     retryChunk: async chunkId => {
+      const state = get();
+      if (!state.selectedTemplateId) {
+        snackbar.error('translation.errors.noTemplateSelected', true);
+        return;
+      }
+
       try {
-        const chunk = await api.retryChunk(chunkId);
+        const chunk = await api.retryChunk(chunkId, state.selectedTemplateId);
         set(state => ({
           chunks: state.chunks.map(c => (c.id === chunkId ? chunk : c)),
         }));
@@ -342,6 +500,27 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
       }
     },
 
+    // 템플릿 목록 로드
+    loadTemplates: async () => {
+      set({ templatesLoading: true });
+      try {
+        const templates = await api.listTemplates();
+        set({ templates, templatesLoading: false });
+        // 템플릿이 있고 선택된 것이 없으면 첫 번째 선택
+        if (templates.length > 0 && !get().selectedTemplateId) {
+          set({ selectedTemplateId: templates[0].id });
+        }
+      } catch {
+        snackbar.error('translation.errors.loadTemplatesFailed', true);
+        set({ templatesLoading: false });
+      }
+    },
+
+    // 템플릿 선택
+    selectTemplate: id => {
+      set({ selectedTemplateId: id });
+    },
+
     // WebSocket 연결
     connectWs: () => {
       translationWs.connect();
@@ -369,12 +548,18 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
         currentSession: null,
         chunks: [],
         sessionLoading: false,
+        chunkPagination: null,
+        chunkFilter: null,
         progress: null,
         isTranslating: false,
         isPaused: false,
+        isUploading: false,
+        uploadError: null,
         config: null,
-        sourceText: '',
         wsConnected: false,
+        templates: [],
+        templatesLoading: false,
+        selectedTemplateId: null,
       });
     },
   };

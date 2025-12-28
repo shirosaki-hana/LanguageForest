@@ -1,14 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
-import { ArrowBack as BackIcon, Translate as TranslateIcon } from '@mui/icons-material';
+import {
+  Translate as TranslateIcon,
+  Settings as SettingsIcon,
+  Terminal as TerminalIcon,
+  Logout as LogoutIcon,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationStore } from '../stores/translationStore';
+import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
 import {
   SessionSidebar,
-  TranslationEditor,
-  ChunkProgressPanel,
+  FileUploadZone,
+  ChunkListView,
   ControlPanel,
   SessionDialog,
   ConfigDialog,
@@ -22,6 +29,8 @@ import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } f
 export default function TranslationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { logout } = useAuthStore();
+  const { openSettings } = useSettingsStore();
 
   // Store 상태
   const {
@@ -30,23 +39,32 @@ export default function TranslationPage() {
     currentSessionId,
     currentSession,
     chunks,
+    chunkPagination,
+    chunkFilter,
     progress,
     isTranslating,
     isPaused,
+    isUploading,
     config,
-    sourceText,
+    templates,
+    selectedTemplateId,
     loadSessions,
     createSession,
     selectSession,
     updateSession,
     deleteSession,
-    setSourceText,
+    uploadFile,
+    downloadTranslation,
+    loadChunks,
+    translateSingleChunk,
+    retryChunk,
     startTranslation,
     pauseTranslation,
     resumeTranslation,
-    retryChunk,
     loadConfig,
     updateConfig,
+    loadTemplates,
+    selectTemplate,
     connectWs,
     disconnectWs,
   } = useTranslationStore();
@@ -60,12 +78,13 @@ export default function TranslationPage() {
   useEffect(() => {
     loadSessions();
     loadConfig();
+    loadTemplates();
     connectWs();
 
     return () => {
       disconnectWs();
     };
-  }, [loadSessions, loadConfig, connectWs, disconnectWs]);
+  }, [loadSessions, loadConfig, loadTemplates, connectWs, disconnectWs]);
 
   // 세션 선택
   const handleSelectSession = useCallback(
@@ -121,13 +140,41 @@ export default function TranslationPage() {
     setEditingSession(null);
   }, []);
 
+  // 파일 업로드
+  const handleUploadFile = useCallback(
+    async (file: File) => {
+      await uploadFile(file);
+    },
+    [uploadFile]
+  );
+
+  // 청크 페이지 변경
+  const handlePageChange = useCallback(
+    (page: number) => {
+      loadChunks({ page });
+    },
+    [loadChunks]
+  );
+
+  // 청크 필터 변경
+  const handleFilterChange = useCallback(
+    (status: import('@languageforest/sharedtype').TranslationChunkStatus | null) => {
+      loadChunks({ page: 1, status });
+    },
+    [loadChunks]
+  );
+
   // 실패 청크 모두 재시도
   const handleRetryFailed = useCallback(() => {
     const failedChunks = chunks.filter(c => c.status === 'failed');
     failedChunks.forEach(chunk => retryChunk(chunk.id));
   }, [chunks, retryChunk]);
 
-  // 실패 청크 있는지 확인
+  // 파생 상태
+  // 파일이 있는지 확인: originalFileName이 있거나, sourceText가 있거나, 청크가 있는 경우
+  const hasFile = currentSession?.status !== 'draft' && 
+    Boolean(currentSession?.originalFileName || currentSession?.sourceText || (currentSession?.totalChunks ?? 0) > 0);
+  const hasCompletedChunks = chunks.some(c => c.status === 'completed');
   const hasFailedChunks = chunks.some(c => c.status === 'failed');
 
   return (
@@ -160,11 +207,6 @@ export default function TranslationPage() {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Tooltip title={t('common.back')}>
-              <IconButton onClick={() => navigate('/welcome')}>
-                <BackIcon />
-              </IconButton>
-            </Tooltip>
             <TranslateIcon color='primary' />
             <Box>
               <Typography variant='h6' fontWeight={600}>
@@ -178,21 +220,24 @@ export default function TranslationPage() {
             </Box>
           </Box>
 
-          {/* 제어 패널 */}
-          {currentSession && (
-            <ControlPanel
-              sessionStatus={currentSession.status}
-              isTranslating={isTranslating}
-              isPaused={isPaused}
-              hasSourceText={Boolean(sourceText.trim())}
-              hasFailedChunks={hasFailedChunks}
-              onStart={startTranslation}
-              onPause={pauseTranslation}
-              onResume={resumeTranslation}
-              onRetryFailed={handleRetryFailed}
-              onOpenSettings={() => setConfigDialogOpen(true)}
-            />
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* 네비게이션 버튼 */}
+            <Tooltip title={t('logs.title')}>
+              <IconButton onClick={() => navigate('/logs')} color='default'>
+                <TerminalIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('settings.title')}>
+              <IconButton onClick={openSettings} color='default'>
+                <SettingsIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={t('auth.logout')}>
+              <IconButton onClick={logout} color='error'>
+                <LogoutIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Paper>
 
         {/* 콘텐츠 영역 */}
@@ -212,18 +257,53 @@ export default function TranslationPage() {
             <Typography color='text.secondary'>{t('translation.selectOrCreateSession')}</Typography>
           </Box>
         ) : (
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', p: 2, gap: 2 }}>
-            {/* 에디터 */}
-            <TranslationEditor
-              sourceText={sourceText}
-              onSourceTextChange={setSourceText}
-              chunks={chunks}
-              disabled={isTranslating}
-              readonly={currentSession.status === 'completed'}
-            />
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* 제어 패널 */}
+            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+              <ControlPanel
+                sessionStatus={currentSession.status}
+                isTranslating={isTranslating}
+                isPaused={isPaused}
+                hasFile={hasFile}
+                hasCompletedChunks={hasCompletedChunks}
+                hasFailedChunks={hasFailedChunks}
+                templates={templates}
+                selectedTemplateId={selectedTemplateId}
+                onSelectTemplate={selectTemplate}
+                onStart={startTranslation}
+                onPause={pauseTranslation}
+                onResume={resumeTranslation}
+                onRetryFailed={handleRetryFailed}
+                onDownload={downloadTranslation}
+                onOpenSettings={() => setConfigDialogOpen(true)}
+              />
+            </Box>
 
-            {/* 청크 진행 상황 */}
-            {chunks.length > 0 && <ChunkProgressPanel chunks={chunks} progress={progress} onRetryChunk={retryChunk} />}
+            {/* 메인 콘텐츠 */}
+            <Box sx={{ flex: 1, overflow: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* 파일 업로드 영역 */}
+              <FileUploadZone
+                session={currentSession}
+                isUploading={isUploading}
+                onUpload={handleUploadFile}
+                disabled={isTranslating}
+              />
+
+              {/* 청크 리스트 */}
+              {hasFile && (
+                <ChunkListView
+                  chunks={chunks}
+                  pagination={chunkPagination}
+                  progress={progress}
+                  filter={chunkFilter}
+                  isTranslating={isTranslating}
+                  onPageChange={handlePageChange}
+                  onFilterChange={handleFilterChange}
+                  onRetryChunk={retryChunk}
+                  onTranslateChunk={translateSingleChunk}
+                />
+              )}
+            </Box>
           </Box>
         )}
       </Box>

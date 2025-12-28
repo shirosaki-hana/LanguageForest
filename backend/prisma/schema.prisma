@@ -59,15 +59,17 @@ model TranslationConfig {
 
 // 번역 세션
 model TranslationSession {
-  id             String   @id @default(cuid())
-  title          String                          // 세션 제목
-  memo           String?                         // 메모 (선택)
-  customDict     String?                         // 커스텀 사전 (JSON일 필요 없음)
-  sourceText     String?                         // 원문 전체
-  translatedText String?                         // 번역문 전체 (조립된 결과)
-  status         String   @default("draft")      // draft | chunking | translating | completed | failed
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String   @id @default(cuid())
+  title            String                          // 세션 제목
+  memo             String?                         // 메모 (선택)
+  customDict       String?                         // 커스텀 사전 (JSON일 필요 없음)
+  originalFileName String?                         // 업로드된 원본 파일명
+  sourceText       String?                         // 원문 전체
+  translatedText   String?                         // 번역문 전체 (조립된 결과)
+  status           String   @default("draft")      // draft | ready | translating | paused | completed | failed
+  totalChunks      Int      @default(0)            // 전체 청크 수 (캐시)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   chunks TranslationChunk[]
 

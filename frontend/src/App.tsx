@@ -7,7 +7,6 @@ import GlobalDialog from './components/common/GlobalDialog';
 import GlobalSnackbar from './components/common/GlobalSnackbar';
 import SetupPasswordPage from './pages/SetupPasswordPage';
 import LoginPage from './pages/LoginPage';
-import WelcomePage from './pages/WelcomePage';
 import LogsPage from './pages/LogsPage';
 import TranslationPage from './pages/TranslationPage';
 
@@ -61,12 +60,11 @@ function AuthRouter() {
       {isSetup && isAuthenticated && (
         <>
           <Route element={<Layout />}>
-            <Route path='/welcome' element={<WelcomePage />} />
             <Route path='/logs' element={<LogsPage />} />
             <Route path='/translation' element={<TranslationPage />} />
-            <Route path='/' element={<Navigate to='/welcome' replace />} />
+            <Route path='/' element={<Navigate to='/translation' replace />} />
           </Route>
-          <Route path='*' element={<Navigate to='/welcome' replace />} />
+          <Route path='*' element={<Navigate to='/translation' replace />} />
         </>
       )}
     </Routes>

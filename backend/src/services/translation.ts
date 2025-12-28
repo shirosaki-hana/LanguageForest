@@ -1,10 +1,11 @@
 import { database } from '../database/index.js';
 import { getGeminiClient, type GeminiClient } from '../external/gemini.js';
-import { buildPromptFromDB, DEFAULT_TRANSLATION_TEMPLATE } from '../translation/promptBuilder.js';
+import { buildPromptFromDB } from '../translation/promptBuilder.js';
 import { splitIntoChunks } from '../translation/chunker.js';
 import type { ChunkInfo } from '../translation/promptBuilder.js';
 import type { TranslationSession, TranslationChunk, TranslationConfig } from '../database/prismaclient/index.js';
 import { emitChunkStart, emitChunkProgress, emitSessionStatus, emitSessionComplete } from './translationEvents.js';
+import { templateService } from './templateService.js';
 import { logger } from '../utils/index.js';
 
 // ============================================
@@ -91,6 +92,8 @@ export async function createSession(input: CreateSessionInput): Promise<Translat
       memo: input.memo,
       customDict: input.customDict,
       status: 'draft',
+      originalFileName: null,
+      totalChunks: 0,
     },
   });
 }
@@ -136,13 +139,173 @@ export async function deleteSession(sessionId: string): Promise<void> {
 }
 
 /**
- * 세션의 청크 목록 조회
+ * 세션의 청크 목록 조회 (전체)
  */
 export async function getSessionChunks(sessionId: string): Promise<TranslationChunk[]> {
   return database.translationChunk.findMany({
     where: { sessionId },
     orderBy: { order: 'asc' },
   });
+}
+
+/**
+ * 세션의 청크 목록 조회 (페이지네이션)
+ */
+export interface PaginatedChunksResult {
+  chunks: TranslationChunk[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export async function getSessionChunksPaginated(
+  sessionId: string,
+  options: { page: number; limit: number; status?: string }
+): Promise<PaginatedChunksResult> {
+  const { page, limit, status } = options;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    sessionId,
+    ...(status && { status }),
+  };
+
+  const [chunks, total] = await Promise.all([
+    database.translationChunk.findMany({
+      where,
+      orderBy: { order: 'asc' },
+      skip,
+      take: limit,
+    }),
+    database.translationChunk.count({ where }),
+  ]);
+
+  return {
+    chunks,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
+
+// ============================================
+// 파일 업로드/다운로드
+// ============================================
+
+export interface FileUploadInput {
+  sessionId: string;
+  fileName: string;
+  content: string;
+}
+
+export interface FileUploadResult {
+  session: TranslationSession;
+  totalChunks: number;
+  originalFileName: string;
+  fileSize: number;
+  charCount: number;
+}
+
+/**
+ * 파일 업로드 및 청킹 처리
+ */
+export async function uploadFileAndChunk(input: FileUploadInput): Promise<FileUploadResult> {
+  const { sessionId, fileName, content } = input;
+  const charCount = content.length;
+  const fileSize = Buffer.byteLength(content, 'utf-8');
+
+  // 설정 조회
+  const config = await getTranslationConfig();
+
+  // 청킹
+  const chunks = splitIntoChunks(content, config.chunkSize);
+
+  if (chunks.length === 0) {
+    throw Object.assign(new Error('No content to translate'), { statusCode: 400 });
+  }
+
+  // 트랜잭션으로 원자적 업데이트
+  const session = await database.$transaction(async tx => {
+    // 세션 조회
+    const existingSession = await tx.translationSession.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!existingSession) {
+      throw Object.assign(new Error('Session not found'), { statusCode: 404 });
+    }
+
+    // 기존 청크 삭제 (재업로드 시)
+    await tx.translationChunk.deleteMany({
+      where: { sessionId },
+    });
+
+    // 청크 DB에 저장
+    await tx.translationChunk.createMany({
+      data: chunks.map((text, index) => ({
+        sessionId,
+        order: index,
+        sourceText: text,
+        status: 'pending',
+      })),
+    });
+
+    // 세션 업데이트
+    return tx.translationSession.update({
+      where: { id: sessionId },
+      data: {
+        originalFileName: fileName,
+        sourceText: content,
+        translatedText: null,
+        status: 'ready',
+        totalChunks: chunks.length,
+      },
+    });
+  });
+
+  return {
+    session,
+    totalChunks: chunks.length,
+    originalFileName: fileName,
+    fileSize,
+    charCount,
+  };
+}
+
+/**
+ * 번역문 다운로드 (완료된 청크들 조립)
+ */
+export async function getTranslationForDownload(sessionId: string): Promise<{ content: string; fileName: string }> {
+  const session = await database.translationSession.findUnique({
+    where: { id: sessionId },
+  });
+
+  if (!session) {
+    throw Object.assign(new Error('Session not found'), { statusCode: 404 });
+  }
+
+  // 완료된 청크들 조회
+  const chunks = await database.translationChunk.findMany({
+    where: { sessionId, status: 'completed' },
+    orderBy: { order: 'asc' },
+  });
+
+  const content = chunks.map(c => c.translatedText ?? '').join('\n\n');
+
+  // 파일명 생성: 원본 파일명에서 확장자 앞에 _translated 추가
+  const originalName = session.originalFileName || session.title;
+  const lastDot = originalName.lastIndexOf('.');
+  const fileName = lastDot > 0 
+    ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}`
+    : `${originalName}_translated.txt`;
+
+  return { content, fileName };
 }
 
 // ============================================
@@ -152,6 +315,7 @@ export async function getSessionChunks(sessionId: string): Promise<TranslationCh
 /**
  * 번역 시작 - 원문을 청크로 분할하고 DB에 저장
  * 트랜잭션으로 묶어 원자성 보장
+ * @deprecated Use uploadFileAndChunk instead
  */
 export async function startTranslation(input: StartTranslationInput): Promise<TranslationProgress> {
   const { sessionId, sourceText } = input;
@@ -350,7 +514,7 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
 /**
  * 단일 청크 번역 실행 (외부 API용)
  */
-export async function translateChunk(chunkId: string, options?: { customDict?: string; template?: string }): Promise<ChunkResult> {
+export async function translateChunk(chunkId: string, options: { templateId: string; customDict?: string }): Promise<ChunkResult> {
   // 청크 조회 (세션 포함)
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
@@ -360,6 +524,9 @@ export async function translateChunk(chunkId: string, options?: { customDict?: s
   if (!chunk) {
     throw Object.assign(new Error('Chunk not found'), { statusCode: 404 });
   }
+
+  // 템플릿 조회
+  const promptTemplate = templateService.getByIdOrThrow(options.templateId);
 
   // 모든 청크 조회 (프롬프트 빌더용)
   const allChunks = await database.translationChunk.findMany({
@@ -380,7 +547,7 @@ export async function translateChunk(chunkId: string, options?: { customDict?: s
     allChunks,
     config,
     client,
-    template: options?.template ?? DEFAULT_TRANSLATION_TEMPLATE,
+    template: promptTemplate.content,
   });
 
   // 성공 시 번역문 조립 시도
@@ -396,7 +563,7 @@ export async function translateChunk(chunkId: string, options?: { customDict?: s
  * DB 조회를 최적화하여 성능 개선
  * 중지(pause) 시 현재 청크 완료 후 중단
  */
-export async function translateAllPendingChunks(sessionId: string, options?: { template?: string }): Promise<ChunkResult[]> {
+export async function translateAllPendingChunks(sessionId: string, options: { templateId: string }): Promise<ChunkResult[]> {
   // 세션과 청크를 한 번에 조회
   const session = await database.translationSession.findUnique({
     where: { id: sessionId },
@@ -410,6 +577,9 @@ export async function translateAllPendingChunks(sessionId: string, options?: { t
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
+
+  // 템플릿 조회
+  const promptTemplate = templateService.getByIdOrThrow(options.templateId);
 
   // 세션 상태를 translating으로 변경
   await database.translationSession.update({
@@ -436,7 +606,7 @@ export async function translateAllPendingChunks(sessionId: string, options?: { t
   // 설정을 한 번만 조회
   const config = await getTranslationConfig();
   const client = getGeminiClient();
-  const template = options?.template ?? DEFAULT_TRANSLATION_TEMPLATE;
+  const template = promptTemplate.content;
 
   const results: ChunkResult[] = [];
 
@@ -556,7 +726,7 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
  * 번역 재개
  * paused 상태에서 pending 청크들을 다시 번역 시작
  */
-export async function resumeTranslation(sessionId: string, options?: { template?: string }): Promise<void> {
+export async function resumeTranslation(sessionId: string, options: { templateId: string }): Promise<void> {
   const session = await database.translationSession.findUnique({
     where: { id: sessionId },
   });
@@ -580,7 +750,7 @@ export async function resumeTranslation(sessionId: string, options?: { template?
 /**
  * 실패한 청크 재시도
  */
-export async function retryFailedChunk(chunkId: string, options?: { template?: string }): Promise<ChunkResult> {
+export async function retryFailedChunk(chunkId: string, options: { templateId: string }): Promise<ChunkResult> {
   const chunk = await database.translationChunk.findUnique({
     where: { id: chunkId },
     include: { session: true },
@@ -601,8 +771,8 @@ export async function retryFailedChunk(chunkId: string, options?: { template?: s
   });
 
   return translateChunk(chunkId, {
+    templateId: options.templateId,
     customDict: chunk.session.customDict ?? undefined,
-    template: options?.template,
   });
 }
 

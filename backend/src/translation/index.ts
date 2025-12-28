@@ -30,7 +30,6 @@ export { splitIntoChunks } from './chunker.js';
 
 // Prompt Builder
 export {
-  DEFAULT_TRANSLATION_TEMPLATE,
   registerTranslationHelpers,
   buildPrompt,
   buildTranslationContext,

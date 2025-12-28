@@ -98,7 +98,7 @@ function handleUnsubscribe(client: ClientConnection, sessionId: string): void {
   }
 }
 
-async function handleStart(client: ClientConnection, sessionId: string): Promise<void> {
+async function handleStart(client: ClientConnection, sessionId: string, templateId: string): Promise<void> {
   // 구독 확인
   if (!client.subscriptions.has(sessionId)) {
     sendError(client.socket, 'Not subscribed to this session', sessionId);
@@ -107,7 +107,7 @@ async function handleStart(client: ClientConnection, sessionId: string): Promise
 
   try {
     // 비동기로 번역 시작 (결과는 이벤트로 전달)
-    translateAllPendingChunks(sessionId).catch(error => {
+    translateAllPendingChunks(sessionId, { templateId }).catch(error => {
       sendError(client.socket, error.message, sessionId);
     });
   } catch (error) {
@@ -125,9 +125,9 @@ async function handlePause(client: ClientConnection, sessionId: string): Promise
   }
 }
 
-async function handleResume(client: ClientConnection, sessionId: string): Promise<void> {
+async function handleResume(client: ClientConnection, sessionId: string, templateId: string): Promise<void> {
   try {
-    await resumeTranslation(sessionId);
+    await resumeTranslation(sessionId, { templateId });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     sendError(client.socket, message, sessionId);
@@ -143,13 +143,13 @@ async function handleMessage(client: ClientConnection, message: WsClientMessage)
       handleUnsubscribe(client, message.sessionId);
       break;
     case 'start':
-      await handleStart(client, message.sessionId);
+      await handleStart(client, message.sessionId, message.templateId);
       break;
     case 'pause':
       await handlePause(client, message.sessionId);
       break;
     case 'resume':
-      await handleResume(client, message.sessionId);
+      await handleResume(client, message.sessionId, message.templateId);
       break;
   }
 }

@@ -1,7 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { Box, Button, Tooltip, CircularProgress } from '@mui/material';
-import { PlayArrow as StartIcon, Pause as PauseIcon, Refresh as RetryIcon, Settings as SettingsIcon } from '@mui/icons-material';
-import type { TranslationSessionStatus } from '@languageforest/sharedtype';
+import { Box, Button, Tooltip, CircularProgress, FormControl, Select, MenuItem, InputLabel } from '@mui/material';
+import {
+  PlayArrow as StartIcon,
+  Pause as PauseIcon,
+  Refresh as RetryIcon,
+  Settings as SettingsIcon,
+  Download as DownloadIcon,
+} from '@mui/icons-material';
+import type { TranslationSessionStatus, PromptTemplate } from '@languageforest/sharedtype';
 
 // ============================================
 // Props
@@ -11,12 +17,17 @@ interface ControlPanelProps {
   sessionStatus: TranslationSessionStatus | null;
   isTranslating: boolean;
   isPaused: boolean;
-  hasSourceText: boolean;
+  hasFile: boolean;
+  hasCompletedChunks: boolean;
   hasFailedChunks: boolean;
+  templates: PromptTemplate[];
+  selectedTemplateId: string | null;
+  onSelectTemplate: (id: string) => void;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
   onRetryFailed: () => void;
+  onDownload: () => void;
   onOpenSettings: () => void;
 }
 
@@ -28,20 +39,27 @@ export default function ControlPanel({
   sessionStatus,
   isTranslating,
   isPaused,
-  hasSourceText,
+  hasFile,
+  hasCompletedChunks,
   hasFailedChunks,
+  templates,
+  selectedTemplateId,
+  onSelectTemplate,
   onStart,
   onPause,
   onResume,
   onRetryFailed,
+  onDownload,
   onOpenSettings,
 }: ControlPanelProps) {
   const { t } = useTranslation();
 
   // 시작/재개 버튼 표시 조건
-  const canStart = !isTranslating && !isPaused && hasSourceText && sessionStatus !== 'completed';
+  const canStart =
+    !isTranslating && !isPaused && hasFile && (sessionStatus === 'ready' || sessionStatus === 'failed') && selectedTemplateId;
   const canPause = isTranslating && !isPaused;
-  const canResume = isPaused;
+  const canResume = isPaused && selectedTemplateId;
+  const canDownload = hasCompletedChunks && !isTranslating;
 
   return (
     <Box
@@ -52,7 +70,24 @@ export default function ControlPanel({
         gap: 2,
       }}
     >
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        {/* 템플릿 선택 */}
+        <FormControl size='small' sx={{ minWidth: 200 }} disabled={isTranslating}>
+          <InputLabel id='template-select-label'>{t('translation.template')}</InputLabel>
+          <Select
+            labelId='template-select-label'
+            value={selectedTemplateId || ''}
+            label={t('translation.template')}
+            onChange={e => onSelectTemplate(e.target.value)}
+          >
+            {templates.map(template => (
+              <MenuItem key={template.id} value={template.id}>
+                {template.title} ({template.sourceLanguage} → {template.targetLanguage})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
         {/* 시작 버튼 */}
         {canStart && (
           <Button variant='contained' color='primary' startIcon={<StartIcon />} onClick={onStart} size='large'>
@@ -86,6 +121,13 @@ export default function ControlPanel({
         {hasFailedChunks && !isTranslating && (
           <Button variant='outlined' color='error' startIcon={<RetryIcon />} onClick={onRetryFailed}>
             {t('translation.retryFailed')}
+          </Button>
+        )}
+
+        {/* 다운로드 버튼 */}
+        {canDownload && (
+          <Button variant='contained' color='success' startIcon={<DownloadIcon />} onClick={onDownload}>
+            {t('translation.download')}
           </Button>
         )}
       </Box>

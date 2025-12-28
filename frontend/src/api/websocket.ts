@@ -110,8 +110,8 @@ class TranslationWebSocket {
   /**
    * 번역 시작
    */
-  start(sessionId: string): void {
-    this.send({ type: 'start', sessionId });
+  start(sessionId: string, templateId: string): void {
+    this.send({ type: 'start', sessionId, templateId });
   }
 
   /**
@@ -124,8 +124,8 @@ class TranslationWebSocket {
   /**
    * 번역 재개
    */
-  resume(sessionId: string): void {
-    this.send({ type: 'resume', sessionId });
+  resume(sessionId: string, templateId: string): void {
+    this.send({ type: 'resume', sessionId, templateId });
   }
 
   /**

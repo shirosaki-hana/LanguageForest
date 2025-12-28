@@ -46,43 +46,6 @@ export interface TranslationContext {
 }
 
 // ============================================
-// 기본 프롬프트 템플릿
-// ============================================
-
-export const DEFAULT_TRANSLATION_TEMPLATE = `<|im_start|>SYSTEM
-You are an expert translator. Translate the given text accurately while maintaining the original tone and style.
-
-Guidelines:
-- Preserve formatting (paragraphs, line breaks)
-- Keep proper nouns in their original form unless there's a standard translation
-- Maintain consistency with previous translations if provided
-{{#if session.customDict}}
-
-Custom Dictionary:
-{{session.customDict}}
-{{/if}}
-<|im_end|>
-
-{{#if hasPrevious}}
-<|im_start|>USER
-Translate the following text:
-
-{{previous.sourceText}}
-<|im_end|>
-
-<|im_start|>ASSISTANT
-{{previous.translatedText}}
-<|im_end|>
-
-{{/if}}
-<|im_start|>USER
-Translate the following text:
-
-{{current.sourceText}}
-<|im_end|>
-`;
-
-// ============================================
 // 커스텀 헬퍼 등록
 // ============================================
 
@@ -331,7 +294,7 @@ export interface BuildPromptFromDBInput {
     sourceText: string;
   };
   allChunks: ChunkInfo[];
-  template?: string;
+  template: string;
 }
 
 /**
@@ -345,7 +308,7 @@ export function buildPromptFromDB(input: BuildPromptFromDBInput): BuildPromptRes
   });
 
   return buildPrompt({
-    template: input.template ?? DEFAULT_TRANSLATION_TEMPLATE,
+    template: input.template,
     context,
   });
 }
