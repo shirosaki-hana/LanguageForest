@@ -44,17 +44,25 @@ export default function SourceEditorTab({
   const theme = useTheme();
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const themeCompartment = useRef(new Compartment());
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // 에디터 초기화
+  // Compartments for dynamic configuration
+  const themeCompartment = useRef(new Compartment());
+  const readOnlyCompartment = useRef(new Compartment());
+  const placeholderCompartment = useRef(new Compartment());
+
+  // Ref to hold the latest onSourceChange callback
+  const onSourceChangeRef = useRef(onSourceChange);
+  useEffect(() => {
+    onSourceChangeRef.current = onSourceChange;
+  }, [onSourceChange]);
+
+  // 에디터 초기화 (정적 설정만)
   useEffect(() => {
     if (!editorRef.current) return;
 
-    const editorTheme = createCodeMirrorTheme(theme);
-
     const state = EditorState.create({
-      doc: sourceText,
+      doc: '',
       extensions: [
         lineNumbers(),
         highlightActiveLine(),
@@ -62,15 +70,15 @@ export default function SourceEditorTab({
         drawSelection(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
-        placeholder(t('translation.editorPlaceholder')),
-        themeCompartment.current.of(editorTheme),
+        placeholderCompartment.current.of(placeholder('')),
+        themeCompartment.current.of([]),
+        readOnlyCompartment.current.of(EditorState.readOnly.of(false)),
         EditorView.updateListener.of(update => {
           if (update.docChanged) {
-            onSourceChange(update.state.doc.toString());
+            onSourceChangeRef.current(update.state.doc.toString());
           }
         }),
         EditorView.lineWrapping,
-        EditorState.readOnly.of(disabled || isChunking),
       ],
     });
 
@@ -85,7 +93,7 @@ export default function SourceEditorTab({
       view.destroy();
       viewRef.current = null;
     };
-  }, []); // 최초 마운트 시에만 실행
+  }, []);
 
   // 테마 변경 시 업데이트
   useEffect(() => {
@@ -97,6 +105,24 @@ export default function SourceEditorTab({
       effects: themeCompartment.current.reconfigure(editorTheme),
     });
   }, [theme]);
+
+  // placeholder 변경 시 업데이트
+  useEffect(() => {
+    if (!viewRef.current) return;
+
+    viewRef.current.dispatch({
+      effects: placeholderCompartment.current.reconfigure(placeholder(t('translation.editorPlaceholder'))),
+    });
+  }, [t]);
+
+  // readOnly 상태 변경 시 업데이트
+  useEffect(() => {
+    if (!viewRef.current) return;
+
+    viewRef.current.dispatch({
+      effects: readOnlyCompartment.current.reconfigure(EditorState.readOnly.of(disabled || isChunking)),
+    });
+  }, [disabled, isChunking]);
 
   // sourceText 외부 변경 시 에디터 업데이트
   useEffect(() => {
@@ -260,7 +286,7 @@ export default function SourceEditorTab({
             outline: 'none',
           },
           '& .cm-scroller': {
-            fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+            fontFamily: 'ui-monospace, "Cascadia Code", "Cascadia Mono", Menlo, Monaco, "Segoe UI", "Malgun Gothic", monospace',
           },
         }}
       >

@@ -52,7 +52,7 @@ function createLightTheme(theme: Theme, options: CodeMirrorThemeOptions = {}) {
       },
       '.cm-content': {
         caretColor: primary,
-        fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+        fontFamily: 'ui-monospace, "Cascadia Code", "Cascadia Mono", Menlo, Monaco, "Segoe UI", "Malgun Gothic", monospace',
         fontSize: '14px',
         lineHeight: '1.6',
         padding: '16px 0',
@@ -87,7 +87,7 @@ function createLightTheme(theme: Theme, options: CodeMirrorThemeOptions = {}) {
       '.cm-lineNumbers .cm-gutterElement': {
         padding: '0 12px',
         minWidth: '48px',
-        fontFamily: '"Consolas", monospace',
+        fontFamily: 'ui-monospace, "Cascadia Code", "Cascadia Mono", Menlo, Monaco, monospace',
         fontSize: '12px',
       },
       '.cm-scroller': {
@@ -132,7 +132,7 @@ function createDarkTheme(theme: Theme, options: CodeMirrorThemeOptions = {}) {
       },
       '.cm-content': {
         caretColor: primary,
-        fontFamily: '"Consolas", "Monaco", "Courier New", monospace',
+        fontFamily: 'ui-monospace, "Cascadia Code", "Cascadia Mono", Menlo, Monaco, "Segoe UI", "Malgun Gothic", monospace',
         fontSize: '14px',
         lineHeight: '1.6',
         padding: '16px 0',
@@ -167,7 +167,7 @@ function createDarkTheme(theme: Theme, options: CodeMirrorThemeOptions = {}) {
       '.cm-lineNumbers .cm-gutterElement': {
         padding: '0 12px',
         minWidth: '48px',
-        fontFamily: '"Consolas", monospace',
+        fontFamily: 'ui-monospace, "Cascadia Code", "Cascadia Mono", Menlo, Monaco, monospace',
         fontSize: '12px',
       },
       '.cm-scroller': {
