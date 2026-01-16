@@ -150,13 +150,29 @@ export default {
       customDictHelp: 'Enter one term per line in "source=translation" format',
       customDictPlaceholder: 'Harry Potter=해리 포터\nHogwarts=호그와트',
 
+      // Tabs
+      tabs: {
+        source: 'Source',
+        chunks: 'Chunks',
+        result: 'Result',
+      },
+
       // Editor
       sourceText: 'Source Text',
       translatedText: 'Translation',
       sourceTextPlaceholder: 'Enter text to translate...',
       translatedTextPlaceholder: 'Translation will appear here',
+      editorPlaceholder: 'Enter text to translate or import a file...',
       charCount: '{{count}} chars',
+      lineCount: '{{count}} lines',
       wordCount: '{{count}} words',
+      importFile: 'Import File',
+      clearText: 'Clear Text',
+      chunked: 'Chunked',
+      startChunking: 'Start Chunking',
+      chunking: 'Chunking...',
+      chunkingComplete: 'Chunking complete',
+      backToSource: 'Back to Source',
 
       // File Upload
       dropFileHere: 'Drop file here',
@@ -214,6 +230,21 @@ export default {
       download: 'Download',
       downloadStarted: 'Download started',
 
+      // Result Tab
+      progress: 'Progress',
+      translationComplete: 'Translation Complete!',
+      translationCompleteDesc: 'All chunks have been translated. Download the result.',
+      translatingDesc: '{{completed}}/{{total}} chunks translated',
+      hasFailedChunks: 'Some chunks failed',
+      hasFailedChunksDesc: '{{failed}} chunks failed. Please retry.',
+      ready: 'Ready to Translate',
+      readyDesc: 'Start translation from the Chunks tab.',
+      downloadResult: 'Download Result',
+      downloadHint: 'Translated text will be downloaded as a single file with _translated suffix.',
+      fileImported: 'File imported',
+      translatingPreview: 'Translating... Results will appear here when done.',
+      noTranslatedTextYet: 'No translated text yet',
+
       // Config
       model: 'AI Model',
       chunkSize: 'Chunk Size',
@@ -268,6 +299,9 @@ export default {
         downloadFailed: 'Download failed',
         loadChunksFailed: 'Failed to load chunks',
         translateChunkFailed: 'Failed to translate chunk',
+        chunkingFailed: 'Chunking failed',
+        fileReadFailed: 'Failed to read file',
+        copyFailed: 'Failed to copy',
       },
     },
   },

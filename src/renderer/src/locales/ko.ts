@@ -150,13 +150,29 @@ export default {
       customDictHelp: '원문=번역문 형식으로 한 줄에 하나씩 입력하세요',
       customDictPlaceholder: 'Harry Potter=해리 포터\nHogwarts=호그와트',
 
+      // Tabs
+      tabs: {
+        source: '소스',
+        chunks: '청크',
+        result: '결과',
+      },
+
       // Editor
       sourceText: '원문',
       translatedText: '번역문',
       sourceTextPlaceholder: '번역할 텍스트를 입력하세요...',
       translatedTextPlaceholder: '번역 결과가 여기에 표시됩니다',
+      editorPlaceholder: '번역할 텍스트를 입력하거나 파일을 불러오세요...',
       charCount: '{{count}}자',
+      lineCount: '{{count}}줄',
       wordCount: '{{count}}단어',
+      importFile: '파일 불러오기',
+      clearText: '텍스트 지우기',
+      chunked: '청킹 완료',
+      startChunking: '청킹 시작',
+      chunking: '청킹 중...',
+      chunkingComplete: '청킹이 완료되었습니다',
+      backToSource: '소스로 돌아가기',
 
       // File Upload
       dropFileHere: '파일을 여기에 놓으세요',
@@ -214,6 +230,21 @@ export default {
       download: '다운로드',
       downloadStarted: '다운로드가 시작되었습니다',
 
+      // Result Tab
+      progress: '진행률',
+      translationComplete: '번역 완료!',
+      translationCompleteDesc: '모든 청크의 번역이 완료되었습니다. 결과를 다운로드하세요.',
+      translatingDesc: '{{completed}}/{{total}} 청크 번역 완료',
+      hasFailedChunks: '실패한 청크가 있습니다',
+      hasFailedChunksDesc: '{{failed}}개의 청크가 실패했습니다. 재시도하세요.',
+      ready: '번역 준비됨',
+      readyDesc: '청크 탭에서 번역을 시작할 수 있습니다.',
+      downloadResult: '결과 다운로드',
+      downloadHint: '번역된 텍스트가 하나의 파일로 다운로드됩니다. 파일명에 _translated가 추가됩니다.',
+      fileImported: '파일을 불러왔습니다',
+      translatingPreview: '번역 중... 완료되면 여기에 표시됩니다.',
+      noTranslatedTextYet: '아직 번역된 텍스트가 없습니다',
+
       // Config
       model: 'AI 모델',
       chunkSize: '청크 크기',
@@ -267,6 +298,9 @@ export default {
         downloadFailed: '다운로드에 실패했습니다',
         loadChunksFailed: '청크 목록을 불러오는데 실패했습니다',
         translateChunkFailed: '청크 번역에 실패했습니다',
+        chunkingFailed: '청킹에 실패했습니다',
+        fileReadFailed: '파일을 읽는데 실패했습니다',
+        copyFailed: '복사에 실패했습니다',
       },
     },
   },

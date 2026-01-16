@@ -1,13 +1,28 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme } from '@mui/material';
-import { Translate as TranslateIcon, Menu as MenuIcon } from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme, Tabs, Tab } from '@mui/material';
+import {
+  Translate as TranslateIcon,
+  Menu as MenuIcon,
+  Edit as SourceIcon,
+  ViewList as ChunksIcon,
+  CheckCircle as ResultIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationStore } from '../stores/translationStore';
 import { useSettingsStore, type TranslationSettingsProps } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
-import { SessionSidebar, FileUploadZone, ChunkListView, ControlPanel, SessionDialog } from '../components/translation';
+import { SessionSidebar, SessionDialog, SourceEditorTab, ChunksTab, ResultTab } from '../components/translation';
 import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } from '@shared/types';
+import * as api from '../api/translation';
+import { snackbar } from '../stores/snackbarStore';
+
+// ============================================
+// 탭 타입
+// ============================================
+
+type TabValue = 'source' | 'chunks' | 'result';
 
 // ============================================
 // 번역 페이지
@@ -32,7 +47,6 @@ export default function TranslationPage() {
     progress,
     isTranslating,
     isPaused,
-    isUploading,
     config,
     models,
     modelsLoading,
@@ -43,7 +57,6 @@ export default function TranslationPage() {
     selectSession,
     updateSession,
     deleteSession,
-    uploadFile,
     downloadTranslation,
     loadChunks,
     translateSingleChunk,
@@ -63,10 +76,17 @@ export default function TranslationPage() {
   // 로컬 상태
   const [sessionDialogOpen, setSessionDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<TranslationSession | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile); // 데스크톱에서는 기본 열림
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [prevIsMobile, setPrevIsMobile] = useState(isMobile);
 
-  // 화면 크기 변경 시 사이드바 상태 조정 (렌더링 중 상태 조정 패턴)
+  // 탭 상태
+  const [activeTab, setActiveTab] = useState<TabValue>('source');
+
+  // 소스 텍스트 상태 (에디터용)
+  const [sourceText, setSourceText] = useState('');
+  const [isChunking, setIsChunking] = useState(false);
+
+  // 화면 크기 변경 시 사이드바 상태 조정
   if (isMobile !== prevIsMobile) {
     setPrevIsMobile(isMobile);
     setSidebarOpen(!isMobile);
@@ -84,6 +104,31 @@ export default function TranslationPage() {
       disconnectWs();
     };
   }, [loadSessions, loadConfig, loadModels, loadTemplates, connectWs, disconnectWs]);
+
+  // 세션 변경 시 상태 초기화
+  useEffect(() => {
+    if (currentSession) {
+      // sourceText 초기화
+      setSourceText(currentSession.sourceText || '');
+
+      // 탭 자동 전환: 청크가 있으면 청크 탭으로, 없으면 소스 탭으로
+      if (currentSession.totalChunks > 0) {
+        setActiveTab('chunks');
+      } else {
+        setActiveTab('source');
+      }
+    } else {
+      setSourceText('');
+      setActiveTab('source');
+    }
+  }, [currentSession?.id]);
+
+  // 번역 완료 시 결과 탭으로 자동 전환
+  useEffect(() => {
+    if (currentSession?.status === 'completed') {
+      setActiveTab('result');
+    }
+  }, [currentSession?.status]);
 
   // 사이드바 토글
   const handleToggleSidebar = useCallback(() => {
@@ -144,13 +189,42 @@ export default function TranslationPage() {
     setEditingSession(null);
   }, []);
 
-  // 파일 업로드
-  const handleUploadFile = useCallback(
-    async (file: File) => {
-      await uploadFile(file);
-    },
-    [uploadFile]
-  );
+  // 파일 Import (에디터에 텍스트 로드)
+  const handleFileImport = useCallback(async (file: File) => {
+    try {
+      const content = await file.text();
+      setSourceText(content);
+      snackbar.success('translation.fileImported', true);
+    } catch {
+      snackbar.error('translation.errors.fileReadFailed', true);
+    }
+  }, []);
+
+  // 청킹 시작
+  const handleStartChunking = useCallback(async () => {
+    if (!currentSessionId || !sourceText.trim()) return;
+
+    setIsChunking(true);
+    try {
+      // API 호출: 소스 텍스트로 청킹 시작
+      await api.startTranslation(currentSessionId, sourceText);
+
+      // 세션 다시 로드
+      await selectSession(currentSessionId);
+
+      // 청크 로드
+      await loadChunks({ page: 1 });
+
+      // 청크 탭으로 전환
+      setActiveTab('chunks');
+
+      snackbar.success('translation.chunkingComplete', true);
+    } catch {
+      snackbar.error('translation.errors.chunkingFailed', true);
+    } finally {
+      setIsChunking(false);
+    }
+  }, [currentSessionId, sourceText, selectSession, loadChunks]);
 
   // 청크 페이지 변경
   const handlePageChange = useCallback(
@@ -174,7 +248,7 @@ export default function TranslationPage() {
     failedChunks.forEach(chunk => retryChunk(chunk.id));
   }, [chunks, retryChunk]);
 
-  // 설정 열기 (번역 설정 탭으로)
+  // 설정 열기
   const handleOpenSettings = useCallback(
     (tab: number = 0) => {
       const translationProps: TranslationSettingsProps = {
@@ -189,13 +263,31 @@ export default function TranslationPage() {
     [config, models, modelsLoading, updateConfig, loadModels, openSettings]
   );
 
+  // 탭 변경
+  const handleTabChange = useCallback((_: React.SyntheticEvent, newValue: TabValue) => {
+    setActiveTab(newValue);
+  }, []);
+
+  // 소스 탭으로 돌아가기
+  const handleBackToSource = useCallback(() => {
+    setActiveTab('source');
+  }, []);
+
   // 파생 상태
-  // 파일이 있는지 확인: originalFileName이 있거나, sourceText가 있거나, 청크가 있는 경우
-  const hasFile =
-    currentSession?.status !== 'draft' &&
-    Boolean(currentSession?.originalFileName || currentSession?.sourceText || (currentSession?.totalChunks ?? 0) > 0);
+  const hasChunks = (currentSession?.totalChunks ?? 0) > 0;
   const hasCompletedChunks = chunks.some(c => c.status === 'completed');
   const hasFailedChunks = chunks.some(c => c.status === 'failed');
+
+  // 번역된 텍스트 합치기 (order 기준 정렬)
+  const translatedText = [...chunks]
+    .sort((a, b) => a.order - b.order)
+    .map(c => c.translatedText || '')
+    .join('\n\n');
+
+  // 탭 활성화 상태
+  const isSourceTabEnabled = Boolean(currentSession);
+  const isChunksTabEnabled = hasChunks;
+  const isResultTabEnabled = hasChunks;
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -221,8 +313,6 @@ export default function TranslationPage() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          // 데스크톱에서 사이드바 열릴 때 마진 조정
-          ml: !isMobile && sidebarOpen ? 0 : 0,
           transition: theme.transitions.create('margin', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
@@ -263,6 +353,11 @@ export default function TranslationPage() {
               )}
             </Box>
           </Box>
+
+          {/* 설정 버튼 */}
+          <IconButton onClick={() => handleOpenSettings(1)} color='inherit'>
+            <SettingsIcon />
+          </IconButton>
         </Paper>
 
         {/* 콘텐츠 영역 */}
@@ -286,44 +381,126 @@ export default function TranslationPage() {
           </Box>
         ) : (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* 제어 패널 */}
-            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-              <ControlPanel
-                sessionStatus={currentSession.status}
-                isTranslating={isTranslating}
-                isPaused={isPaused}
-                hasFile={hasFile}
-                hasCompletedChunks={hasCompletedChunks}
-                hasFailedChunks={hasFailedChunks}
-                templates={templates}
-                selectedTemplateId={selectedTemplateId}
-                onSelectTemplate={selectTemplate}
-                onStart={startTranslation}
-                onPause={pauseTranslation}
-                onResume={resumeTranslation}
-                onRetryFailed={handleRetryFailed}
-                onDownload={downloadTranslation}
-                onOpenSettings={() => handleOpenSettings(1)}
-              />
+            {/* 탭 헤더 */}
+            <Box
+              sx={{
+                borderBottom: 1,
+                borderColor: 'divider',
+                bgcolor: theme.custom.glassmorphism.light,
+              }}
+            >
+              <Tabs
+                value={activeTab}
+                onChange={handleTabChange}
+                variant='standard'
+                sx={{
+                  minHeight: 48,
+                  '& .MuiTab-root': {
+                    minHeight: 48,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                  },
+                  '& .MuiTabs-indicator': {
+                    height: 3,
+                    borderRadius: '3px 3px 0 0',
+                  },
+                }}
+              >
+                <Tab
+                  value='source'
+                  label={t('translation.tabs.source')}
+                  icon={<SourceIcon sx={{ fontSize: 20 }} />}
+                  iconPosition='start'
+                  disabled={!isSourceTabEnabled}
+                />
+                <Tab
+                  value='chunks'
+                  label={t('translation.tabs.chunks')}
+                  icon={<ChunksIcon sx={{ fontSize: 20 }} />}
+                  iconPosition='start'
+                  disabled={!isChunksTabEnabled}
+                  sx={{
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
+                />
+                <Tab
+                  value='result'
+                  label={t('translation.tabs.result')}
+                  icon={<ResultIcon sx={{ fontSize: 20 }} />}
+                  iconPosition='start'
+                  disabled={!isResultTabEnabled}
+                  sx={{
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
+                    },
+                  }}
+                />
+              </Tabs>
             </Box>
 
-            {/* 메인 콘텐츠 */}
-            <Box sx={{ flex: 1, overflow: 'hidden', p: 2, display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
-              {/* 파일 업로드 영역 */}
-              <FileUploadZone session={currentSession} isUploading={isUploading} onUpload={handleUploadFile} disabled={isTranslating} />
+            {/* 탭 콘텐츠 */}
+            <Box
+              sx={{
+                flex: 1,
+                overflow: 'hidden',
+                p: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0,
+              }}
+            >
+              {/* 소스 탭 */}
+              {activeTab === 'source' && (
+                <SourceEditorTab
+                  sourceText={sourceText}
+                  onSourceChange={setSourceText}
+                  onStartChunking={handleStartChunking}
+                  onFileImport={handleFileImport}
+                  isChunking={isChunking}
+                  hasChunks={hasChunks}
+                  disabled={isTranslating}
+                />
+              )}
 
-              {/* 청크 리스트 */}
-              {hasFile && (
-                <ChunkListView
+              {/* 청크 탭 */}
+              {activeTab === 'chunks' && (
+                <ChunksTab
                   chunks={chunks}
                   pagination={chunkPagination}
                   progress={progress}
                   filter={chunkFilter}
+                  templates={templates}
+                  selectedTemplateId={selectedTemplateId}
+                  onSelectTemplate={selectTemplate}
                   isTranslating={isTranslating}
+                  isPaused={isPaused}
+                  hasFailedChunks={hasFailedChunks}
                   onPageChange={handlePageChange}
                   onFilterChange={handleFilterChange}
                   onRetryChunk={retryChunk}
                   onTranslateChunk={translateSingleChunk}
+                  onStart={startTranslation}
+                  onPause={pauseTranslation}
+                  onResume={resumeTranslation}
+                  onRetryFailed={handleRetryFailed}
+                  onBackToSource={handleBackToSource}
+                />
+              )}
+
+              {/* 결과 탭 */}
+              {activeTab === 'result' && (
+                <ResultTab
+                  sessionStatus={currentSession.status}
+                  progress={progress}
+                  isTranslating={isTranslating}
+                  hasCompletedChunks={hasCompletedChunks}
+                  hasFailedChunks={hasFailedChunks}
+                  translatedText={translatedText}
+                  onDownload={downloadTranslation}
+                  onRetryFailed={handleRetryFailed}
                 />
               )}
             </Box>
