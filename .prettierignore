@@ -1,22 +1,6 @@
-# Directories to ignore (any location)
-**/dist/
-**/node_modules/
-**/prismaclient/
-
-# Backend specific
-**/prisma/migrations/
-
-# Frontend specific
-**/public/
-
-# Logs and env files
-*.log
-.env*
-
-# Lock files
+out/
+dist/
+node_modules/
+*.db
+*.db-journal
 pnpm-lock.yaml
-
-# media
-**/backend/temp/
-**/backend/media/
-**/backend/src/test/

@@ -1,11 +1,4 @@
-packages:
-  - backend
-  - frontend
-  - packages/sharedtype
-
 onlyBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - better-sqlite3
+  - electron
+  - electron-winstaller
   - esbuild
-  - prisma

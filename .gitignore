@@ -1,22 +1,37 @@
-# Dist
-**/dist
+# Build outputs
+out/
+dist/
 
 # Dependency directories
 node_modules/
 
-# dotenv environment variable files
+# Environment files
 .env
+.env.local
 
-# Prisma
+# Database files
 *.db
 *.db-journal
-**/prismaclient/
 
-# media
-backend/media/
-backend/temp/
-backend/src/test/output
+# Electron builder outputs
+release/
+*.exe
+*.dmg
+*.AppImage
+*.snap
 
-# Docker
-docker-compose.override.yml
-docker-compose.local.yml
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
