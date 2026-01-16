@@ -4,6 +4,16 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { initializeDatabase, disconnectDatabase } from './database/client';
 import { registerIpcHandlers } from './ipc';
 
+// 앱 아이콘 경로 (플랫폼별)
+const getIconPath = (): string => {
+  if (is.dev) {
+    // 개발 환경: 프로젝트 루트의 build 폴더
+    return join(__dirname, '../../build/icon.png');
+  }
+  // 프로덕션: 리소스 폴더
+  return join(process.resourcesPath, 'icon.png');
+};
+
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
@@ -14,6 +24,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
+    icon: getIconPath(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
