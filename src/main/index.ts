@@ -50,8 +50,8 @@ app.whenReady().then(async () => {
   // Initialize database
   await initializeDatabase();
 
-  // Register IPC handlers
-  registerIpcHandlers();
+  // Register IPC handlers (로거 초기화 포함 - DB 준비 전 큐에 쌓인 로그들 flush)
+  await registerIpcHandlers();
 
   createWindow();
 

@@ -51,9 +51,9 @@ let logSettings: LogSettings = {
 /**
  * 모든 IPC 핸들러 등록
  */
-export function registerIpcHandlers(): void {
-  // 로거 초기화
-  initializeLogger();
+export async function registerIpcHandlers(): Promise<void> {
+  // 로거 초기화 (DB 준비 후 호출되므로 큐에 쌓인 로그들이 flush됨)
+  await initializeLogger();
 
   // 템플릿 서비스 초기화
   templateService.initialize();

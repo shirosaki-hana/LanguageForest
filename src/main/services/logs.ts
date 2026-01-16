@@ -1,10 +1,16 @@
 import { db } from '../database/index';
-import { setLogDbSaver } from '../utils/log';
+import { setLogDbSaver, flushLogQueue } from '../utils/log';
 import type { LogLevel, LogCategory, GetLogsRequest, LogSettings } from '@shared/types';
 
 //------------------------------------------------------------------------------//
 // 로그 DB 저장 함수
-const saveLogToDb = async (level: LogLevel, category: LogCategory, message: string, meta?: unknown): Promise<void> => {
+const saveLogToDb = async (
+  level: LogLevel,
+  category: LogCategory,
+  message: string,
+  meta?: unknown,
+  timestamp?: string
+): Promise<void> => {
   await db
     .insertInto('logs')
     .values({
@@ -12,13 +18,17 @@ const saveLogToDb = async (level: LogLevel, category: LogCategory, message: stri
       category,
       message,
       meta: meta ? JSON.stringify(meta) : null,
+      // timestamp가 제공되면 사용, 아니면 DB 기본값(CURRENT_TIMESTAMP) 사용
+      ...(timestamp && { createdAt: timestamp }),
     })
     .execute();
 };
 
-// 로거 초기화 (앱 시작 시 호출)
-export const initializeLogger = () => {
+// 로거 초기화 (앱 시작 시 호출, DB 준비 후 호출해야 함)
+export const initializeLogger = async (): Promise<void> => {
   setLogDbSaver(saveLogToDb);
+  // DB 준비 완료 - 큐에 쌓인 로그 모두 flush
+  await flushLogQueue();
 };
 
 //------------------------------------------------------------------------------//
