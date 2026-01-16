@@ -4,7 +4,6 @@ import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme } from '@mu
 import { Translate as TranslateIcon, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationStore } from '../stores/translationStore';
-import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore, type TranslationSettingsProps } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
 import { SessionSidebar, FileUploadZone, ChunkListView, ControlPanel, SessionDialog } from '../components/translation';
@@ -19,7 +18,6 @@ export default function TranslationPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { logout } = useAuthStore();
   const { openSettings } = useSettingsStore();
 
   // Store 상태
@@ -213,7 +211,6 @@ export default function TranslationPage() {
         onEditSession={handleEditSession}
         onNavigateLogs={() => navigate('/logs')}
         onOpenSettings={() => handleOpenSettings(0)}
-        onLogout={logout}
       />
 
       {/* 메인 영역 */}

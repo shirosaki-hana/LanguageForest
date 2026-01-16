@@ -27,29 +27,6 @@ export default {
       confirmButton: 'OK',
     },
 
-    // Auth
-    auth: {
-      setup: {
-        title: 'Setup Password',
-        subtitle: 'Set an administrator password to get started',
-        password: 'Password',
-        confirmPassword: 'Confirm Password',
-        passwordHelper: 'At least 8 characters, including letters and numbers',
-        submit: 'Set Password',
-        submitting: 'Setting...',
-        passwordMismatch: 'Passwords do not match',
-        invalidFormat: 'Invalid password format',
-      },
-      login: {
-        title: 'Sign In',
-        subtitle: 'Sign in to continue',
-        password: 'Password',
-        submit: 'Sign In',
-        submitting: 'Signing in...',
-      },
-      logout: 'Sign Out',
-    },
-
     // Welcome
     welcome: {
       subtitle: 'Personal Server Application Template',
@@ -79,10 +56,6 @@ export default {
 
     // Errors
     errors: {
-      statusCheckFailed: 'Failed to check status',
-      setupFailed: 'Failed to set password',
-      loginFailed: 'Failed to sign in',
-      logoutFailed: 'Failed to sign out',
       network: 'Network error',
       unknown: 'Unknown error occurred',
     },

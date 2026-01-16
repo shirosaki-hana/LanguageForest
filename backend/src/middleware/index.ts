@@ -1,1 +1,1 @@
-export { requireAuth } from './auth.js';
+// Middleware exports (auth removed for Electron desktop app)

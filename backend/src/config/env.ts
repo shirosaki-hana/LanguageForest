@@ -63,8 +63,6 @@ const envSchema = z.object({
   REQUEST_BODY_LIMIT: z.string().default('10mb'),
   FRONTEND_URL: z.url().default('http://127.0.0.1'),
   DATABASE_URL_SQLITE: z.string().default('file:./prisma/languageforest.db'),
-  SESSION_COOKIE: z.string().default('session'),
-  SESSION_TTL: msStringSchema.default('24h'),
   RATELIMIT_MAX: z.coerce.number().positive().default(100),
   RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
 

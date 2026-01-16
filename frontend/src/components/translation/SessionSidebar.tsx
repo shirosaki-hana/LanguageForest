@@ -38,7 +38,6 @@ import {
   Schedule as PendingIcon,
   Terminal as TerminalIcon,
   Settings as SettingsIcon,
-  Logout as LogoutIcon,
   ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import type { TranslationSession, TranslationSessionStatus } from '@languageforest/sharedtype';
@@ -66,7 +65,6 @@ interface SessionSidebarProps {
   // 하단 액션 버튼
   onNavigateLogs: () => void;
   onOpenSettings: () => void;
-  onLogout: () => void;
 }
 
 // ============================================
@@ -206,7 +204,6 @@ interface SidebarContentProps {
   onEditSession: (session: TranslationSession) => void;
   onNavigateLogs: () => void;
   onOpenSettings: () => void;
-  onLogout: () => void;
 }
 
 function SidebarContent({
@@ -221,7 +218,6 @@ function SidebarContent({
   onEditSession,
   onNavigateLogs,
   onOpenSettings,
-  onLogout,
 }: SidebarContentProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -405,28 +401,6 @@ function SidebarContent({
             </ListItemIcon>
             <ListItemText primary={<Typography variant='body2'>{t('settings.title')}</Typography>} />
           </ListItemButton>
-          <ListItemButton
-            onClick={onLogout}
-            sx={{
-              borderRadius: 2,
-              py: 1,
-              color: 'error.main',
-              '&:hover': {
-                bgcolor: theme => alpha(theme.palette.error.main, 0.08),
-              },
-            }}
-          >
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <LogoutIcon fontSize='small' color='error' />
-            </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography variant='body2' color='error'>
-                  {t('auth.logout')}
-                </Typography>
-              }
-            />
-          </ListItemButton>
         </List>
       </Box>
     </Box>
@@ -449,7 +423,6 @@ export default function SessionSidebar({
   onEditSession,
   onNavigateLogs,
   onOpenSettings,
-  onLogout,
 }: SessionSidebarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -467,7 +440,6 @@ export default function SessionSidebar({
       onEditSession={onEditSession}
       onNavigateLogs={onNavigateLogs}
       onOpenSettings={onOpenSettings}
-      onLogout={onLogout}
     />
   );
 

@@ -7,27 +7,6 @@ datasource db {
   provider = "sqlite"
 }
 
-model Auth {
-  id           Int      @id @default(1)
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  @@map("auth")
-}
-
-// 세션 테이블
-model Session {
-  id        String     @id @default(cuid())
-  token     String     @unique
-  ttl       Int
-  createdAt DateTime   @default(now())
-  
-  @@map("sessions")
-  @@index([token])
-  @@index([createdAt])
-}
-
 // 로그 테이블
 model Log {
   id        Int      @id @default(autoincrement())

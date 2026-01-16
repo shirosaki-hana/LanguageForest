@@ -10,7 +10,6 @@ import {
   UpdateLogSettingsResponseSchema,
 } from '@languageforest/sharedtype';
 import { getLogs, getLogStats, deleteLogs, cleanupOldLogs } from '../services/logs.js';
-import { requireAuth } from '../middleware/auth.js';
 
 //------------------------------------------------------------------------------//
 // 기본 로그 설정 (추후 설정 테이블로 이동 가능)
@@ -20,8 +19,6 @@ let logSettings = {
 };
 
 export const logsRoutes: FastifyPluginAsync = async fastify => {
-  // 모든 로그 API는 인증 필요
-  fastify.addHook('onRequest', requireAuth);
 
   // 로그 목록 조회
   fastify.get('/', async (request, reply) => {
