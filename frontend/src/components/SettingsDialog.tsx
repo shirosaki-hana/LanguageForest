@@ -25,6 +25,8 @@ import {
   AccordionDetails,
   Chip,
   CircularProgress,
+  InputAdornment,
+  Alert,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -35,10 +37,16 @@ import {
   Translate as TranslationIcon,
   ExpandMore as ExpandMoreIcon,
   Tune as TuneIcon,
+  Key as KeyIcon,
+  Visibility,
+  VisibilityOff,
+  CheckCircle,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useThemeStore, type ThemeMode } from '../stores/themeStore';
+import { getAppSettings, updateApiKey, deleteApiKey, validateApiKey } from '../api/translation';
 
 // ============================================
 // Tab Panel
@@ -70,6 +78,17 @@ export default function SettingsDialog() {
   // 탭 상태
   const [tabIndex, setTabIndex] = useState(0);
 
+  // API 키 설정 상태
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const [maskedApiKey, setMaskedApiKey] = useState<string | null>(null);
+  const [apiKeyLoading, setApiKeyLoading] = useState(false);
+  const [apiKeySaving, setApiKeySaving] = useState(false);
+  const [apiKeyValidating, setApiKeyValidating] = useState(false);
+  const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null);
+
   // 번역 설정 상태
   const [model, setModel] = useState('gemini-2.5-flash');
   const [chunkSize, setChunkSize] = useState(2000);
@@ -86,6 +105,79 @@ export default function SettingsDialog() {
       setTabIndex(initialTab);
     }
   }, [isOpen, initialTab]);
+
+  // API 키 설정 로드
+  useEffect(() => {
+    if (isOpen) {
+      loadApiKeySettings();
+    }
+  }, [isOpen]);
+
+  const loadApiKeySettings = async () => {
+    setApiKeyLoading(true);
+    try {
+      const settings = await getAppSettings();
+      setHasApiKey(settings.hasApiKey);
+      setMaskedApiKey(settings.geminiApiKey);
+      setApiKey('');
+      setApiKeyValid(null);
+      setApiKeyError(null);
+    } catch {
+      setApiKeyError(t('settings.apiKey.loadFailed'));
+    } finally {
+      setApiKeyLoading(false);
+    }
+  };
+
+  const handleSaveApiKey = async () => {
+    if (!apiKey.trim()) return;
+    setApiKeySaving(true);
+    setApiKeyError(null);
+    try {
+      await updateApiKey(apiKey.trim());
+      setHasApiKey(true);
+      setApiKey('');
+      setApiKeyValid(null);
+      await loadApiKeySettings();
+    } catch {
+      setApiKeyError(t('settings.apiKey.saveFailed'));
+    } finally {
+      setApiKeySaving(false);
+    }
+  };
+
+  const handleDeleteApiKey = async () => {
+    setApiKeySaving(true);
+    setApiKeyError(null);
+    try {
+      await deleteApiKey();
+      setHasApiKey(false);
+      setMaskedApiKey(null);
+      setApiKey('');
+      setApiKeyValid(null);
+    } catch {
+      setApiKeyError(t('settings.apiKey.deleteFailed'));
+    } finally {
+      setApiKeySaving(false);
+    }
+  };
+
+  const handleValidateApiKey = async () => {
+    setApiKeyValidating(true);
+    setApiKeyError(null);
+    try {
+      const result = await validateApiKey();
+      setApiKeyValid(result.valid);
+      if (!result.valid && result.error) {
+        setApiKeyError(result.error);
+      }
+    } catch {
+      setApiKeyValid(false);
+      setApiKeyError(t('settings.apiKey.validateFailed'));
+    } finally {
+      setApiKeyValidating(false);
+    }
+  };
 
   // 번역 설정 초기화
   useEffect(() => {
@@ -226,6 +318,127 @@ export default function SettingsDialog() {
                   {t('settings.language.en')}
                 </ToggleButton>
               </ToggleButtonGroup>
+            </Box>
+
+            <Divider />
+
+            {/* API 키 설정 */}
+            <Box>
+              <Typography variant='subtitle2' gutterBottom sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <KeyIcon fontSize='small' />
+                {t('settings.apiKey.title')}
+              </Typography>
+              <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mb: 2 }}>
+                {t('settings.apiKey.description')}
+              </Typography>
+
+              {apiKeyLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : (
+                <>
+                  {/* 현재 API 키 상태 */}
+                  {hasApiKey && maskedApiKey && (
+                    <Alert
+                      severity='success'
+                      icon={<CheckCircle />}
+                      sx={{ mb: 2 }}
+                      action={
+                        <Button color='inherit' size='small' onClick={handleValidateApiKey} disabled={apiKeyValidating}>
+                          {apiKeyValidating ? <CircularProgress size={16} /> : t('settings.apiKey.validate')}
+                        </Button>
+                      }
+                    >
+                      <Typography variant='body2'>
+                        {t('settings.apiKey.current')}: <code>{maskedApiKey}</code>
+                      </Typography>
+                    </Alert>
+                  )}
+
+                  {!hasApiKey && (
+                    <Alert severity='warning' icon={<ErrorIcon />} sx={{ mb: 2 }}>
+                      {t('settings.apiKey.notSet')}
+                    </Alert>
+                  )}
+
+                  {apiKeyValid === true && (
+                    <Alert severity='success' sx={{ mb: 2 }}>
+                      {t('settings.apiKey.valid')}
+                    </Alert>
+                  )}
+
+                  {apiKeyValid === false && (
+                    <Alert severity='error' sx={{ mb: 2 }}>
+                      {apiKeyError || t('settings.apiKey.invalid')}
+                    </Alert>
+                  )}
+
+                  {apiKeyError && apiKeyValid === null && (
+                    <Alert severity='error' sx={{ mb: 2 }}>
+                      {apiKeyError}
+                    </Alert>
+                  )}
+
+                  {/* API 키 입력 필드 */}
+                  <TextField
+                    fullWidth
+                    label={t('settings.apiKey.inputLabel')}
+                    type={showApiKey ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder={t('settings.apiKey.placeholder')}
+                    size='small'
+                    sx={{ mb: 2 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <IconButton onClick={() => setShowApiKey(!showApiKey)} edge='end' size='small'>
+                            {showApiKey ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+
+                  {/* 버튼들 */}
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      variant='contained'
+                      onClick={handleSaveApiKey}
+                      disabled={!apiKey.trim() || apiKeySaving}
+                      size='small'
+                    >
+                      {apiKeySaving ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+                      {hasApiKey ? t('settings.apiKey.update') : t('settings.apiKey.save')}
+                    </Button>
+                    {hasApiKey && (
+                      <Button
+                        variant='outlined'
+                        color='error'
+                        onClick={handleDeleteApiKey}
+                        disabled={apiKeySaving}
+                        size='small'
+                      >
+                        {t('settings.apiKey.delete')}
+                      </Button>
+                    )}
+                  </Box>
+
+                  {/* API 키 발급 링크 */}
+                  <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 2 }}>
+                    {t('settings.apiKey.getKeyHint')}{' '}
+                    <a
+                      href='https://aistudio.google.com/app/apikey'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      style={{ color: 'inherit' }}
+                    >
+                      Google AI Studio
+                    </a>
+                  </Typography>
+                </>
+              )}
             </Box>
           </Stack>
         </TabPanel>

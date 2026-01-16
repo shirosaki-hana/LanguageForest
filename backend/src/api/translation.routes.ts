@@ -11,8 +11,10 @@ import {
   TranslateChunkRequestSchema,
   // Pagination
   GetSessionChunksQuerySchema,
+  // App Settings
+  UpdateApiKeyRequestSchema,
 } from '@languageforest/sharedtype';
-import { getGeminiClient } from '../external/gemini.js';
+import { getGeminiClient, getGeminiClientAsync } from '../external/gemini.js';
 import { GEMINI_MODELS } from '../config/models.js';
 import {
   // Config
@@ -36,6 +38,10 @@ import {
   translateChunk,
   retryFailedChunk,
   getPartialTranslation,
+  // App Settings
+  getAppSettings,
+  updateApiKey,
+  deleteApiKey,
 } from '../services/translation.js';
 import { templateRoutes } from './template.routes.js';
 
@@ -48,6 +54,46 @@ export const translationRoutes: FastifyPluginAsync = async fastify => {
   // 템플릿 라우트 등록
   // ==========================================
   await fastify.register(templateRoutes);
+
+  // ==========================================
+  // 앱 설정 (API 키 등)
+  // ==========================================
+
+  // GET /settings - 앱 설정 조회
+  fastify.get('/settings', async () => {
+    return getAppSettings();
+  });
+
+  // PUT /settings/api-key - API 키 설정
+  fastify.put<{
+    Body: { apiKey: string };
+  }>('/settings/api-key', async request => {
+    const data = UpdateApiKeyRequestSchema.parse(request.body);
+    return updateApiKey(data.apiKey);
+  });
+
+  // DELETE /settings/api-key - API 키 삭제
+  fastify.delete('/settings/api-key', async () => {
+    return deleteApiKey();
+  });
+
+  // GET /settings/api-key/validate - API 키 유효성 검증
+  fastify.get('/settings/api-key/validate', async () => {
+    try {
+      const client = await getGeminiClientAsync();
+      // 간단한 API 호출로 유효성 검증
+      await client.generateContent({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: { maxOutputTokens: 10 },
+      });
+      return { valid: true };
+    } catch (error) {
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'API 키 검증에 실패했습니다',
+      };
+    }
+  });
 
   // ==========================================
   // LLM Provider (Gemini)

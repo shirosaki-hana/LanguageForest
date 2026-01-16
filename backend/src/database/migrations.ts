@@ -101,14 +101,26 @@ const MIGRATIONS: MigrationDefinition[] = [
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS "translation_chunks_sessionId_order_key" ON "translation_chunks"("sessionId", "order")`.execute(db);
     },
   },
-  // 향후 마이그레이션 추가 예시:
-  // {
-  //   version: 2,
-  //   name: 'add_new_feature',
-  //   up: async (db) => {
-  //     await sql`ALTER TABLE ...`.execute(db);
-  //   },
-  // },
+  {
+    version: 2,
+    name: 'add_app_settings',
+    up: async db => {
+      // app_settings 테이블 (싱글톤 - API 키 등 앱 전역 설정 저장)
+      await sql`
+        CREATE TABLE IF NOT EXISTS "app_settings" (
+          "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT DEFAULT 1,
+          "geminiApiKey" TEXT,
+          "updatedAt" DATETIME NOT NULL
+        )
+      `.execute(db);
+
+      // 기본 레코드 생성
+      await sql`
+        INSERT OR IGNORE INTO "app_settings" ("id", "geminiApiKey", "updatedAt")
+        VALUES (1, NULL, datetime('now'))
+      `.execute(db);
+    },
+  },
 ];
 
 //------------------------------------------------------------------------------

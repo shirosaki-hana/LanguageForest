@@ -12,11 +12,26 @@ import type { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export interface Database {
   logs: LogTable;
+  app_settings: AppSettingsTable;
   translation_config: TranslationConfigTable;
   translation_sessions: TranslationSessionTable;
   translation_chunks: TranslationChunkTable;
   _migrations: MigrationTable;
 }
+
+//------------------------------------------------------------------------------
+// App Settings Table (Singleton - id=1 고정)
+//------------------------------------------------------------------------------
+
+export interface AppSettingsTable {
+  id: Generated<number>;
+  geminiApiKey: string | null; // 암호화되어 저장됨
+  updatedAt: string;
+}
+
+export type AppSettings = Selectable<AppSettingsTable>;
+export type NewAppSettings = Insertable<AppSettingsTable>;
+export type AppSettingsUpdate = Updateable<AppSettingsTable>;
 
 //------------------------------------------------------------------------------
 // Log Table

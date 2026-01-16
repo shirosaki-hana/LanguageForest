@@ -1,6 +1,50 @@
 import { z } from 'zod';
 
 // ============================================
+// 앱 설정 (App Settings)
+// ============================================
+
+export const AppSettingsSchema = z.object({
+  id: z.number().int(),
+  geminiApiKey: z.string().nullable(), // 마스킹된 형태로 반환
+  hasApiKey: z.boolean(), // API 키 설정 여부
+  updatedAt: z.string(), // ISO 8601
+});
+export type AppSettings = z.infer<typeof AppSettingsSchema>;
+
+// GET /settings 응답
+export const GetAppSettingsResponseSchema = AppSettingsSchema;
+export type GetAppSettingsResponse = z.infer<typeof GetAppSettingsResponseSchema>;
+
+// PUT /settings/api-key 요청
+export const UpdateApiKeyRequestSchema = z.object({
+  apiKey: z.string().min(1).max(500),
+});
+export type UpdateApiKeyRequest = z.infer<typeof UpdateApiKeyRequestSchema>;
+
+// PUT /settings/api-key 응답
+export const UpdateApiKeyResponseSchema = z.object({
+  success: z.boolean(),
+  hasApiKey: z.boolean(),
+  updatedAt: z.string(),
+});
+export type UpdateApiKeyResponse = z.infer<typeof UpdateApiKeyResponseSchema>;
+
+// DELETE /settings/api-key 응답
+export const DeleteApiKeyResponseSchema = z.object({
+  success: z.boolean(),
+  updatedAt: z.string(),
+});
+export type DeleteApiKeyResponse = z.infer<typeof DeleteApiKeyResponseSchema>;
+
+// GET /settings/api-key/validate 응답
+export const ValidateApiKeyResponseSchema = z.object({
+  valid: z.boolean(),
+  error: z.string().optional(),
+});
+export type ValidateApiKeyResponse = z.infer<typeof ValidateApiKeyResponseSchema>;
+
+// ============================================
 // 번역 상태 enum
 // ============================================
 

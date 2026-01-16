@@ -22,6 +22,11 @@ import type {
   PaginatedChunksResponse,
   // Models
   GeminiModelInfo,
+  // App Settings
+  AppSettings,
+  UpdateApiKeyResponse,
+  DeleteApiKeyResponse,
+  ValidateApiKeyResponse,
 } from '@languageforest/sharedtype';
 
 // ============================================
@@ -171,5 +176,29 @@ export async function retryChunk(chunkId: string, templateId: string): Promise<T
 
 export async function translateSingleChunk(chunkId: string, templateId: string): Promise<TranslationChunk> {
   const { data } = await apiClient.post<TranslationChunk>(`/translation/chunks/${chunkId}/translate`, { templateId });
+  return data;
+}
+
+// ============================================
+// 앱 설정 (API 키 등)
+// ============================================
+
+export async function getAppSettings(): Promise<AppSettings> {
+  const { data } = await apiClient.get<AppSettings>('/translation/settings');
+  return data;
+}
+
+export async function updateApiKey(apiKey: string): Promise<UpdateApiKeyResponse> {
+  const { data } = await apiClient.put<UpdateApiKeyResponse>('/translation/settings/api-key', { apiKey });
+  return data;
+}
+
+export async function deleteApiKey(): Promise<DeleteApiKeyResponse> {
+  const { data } = await apiClient.delete<DeleteApiKeyResponse>('/translation/settings/api-key');
+  return data;
+}
+
+export async function validateApiKey(): Promise<ValidateApiKeyResponse> {
+  const { data } = await apiClient.get<ValidateApiKeyResponse>('/translation/settings/api-key/validate');
   return data;
 }

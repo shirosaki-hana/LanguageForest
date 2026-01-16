@@ -135,7 +135,10 @@ export class GeminiClient {
   private readonly safetySettings: GeminiSafetySetting[];
 
   constructor(config: GeminiClientConfig = {}) {
-    this.apiKey = config.apiKey ?? env.GEMINI_API_KEY;
+    if (!config.apiKey) {
+      throw new GeminiAPIError('API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.', 401, 'API_KEY_NOT_SET');
+    }
+    this.apiKey = config.apiKey;
     this.model = config.model ?? DEFAULT_MODEL;
     this.defaultGenerationConfig = config.defaultGenerationConfig ?? {
       maxOutputTokens: 32000,
@@ -359,6 +362,38 @@ export class GeminiAPIError extends Error {
 
 let defaultClient: GeminiClient | null = null;
 
+/**
+ * DB에서 API 키 가져오기 (순환 참조 방지를 위해 동적 import)
+ */
+async function getApiKeyFromDB(): Promise<string | null> {
+  const { db } = await import('../database/index.js');
+  const settings = await db.selectFrom('app_settings').select('geminiApiKey').executeTakeFirst();
+  return settings?.geminiApiKey ?? null;
+}
+
+/**
+ * GeminiClient 싱글톤 가져오기 (비동기)
+ * - DB에 저장된 API 키 사용
+ */
+export async function getGeminiClientAsync(config?: GeminiClientConfig): Promise<GeminiClient> {
+  if (!defaultClient) {
+    // DB에서 API 키 조회
+    const dbApiKey = await getApiKeyFromDB();
+    const apiKey = config?.apiKey ?? dbApiKey;
+
+    if (!apiKey) {
+      throw new GeminiAPIError('API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.', 401, 'API_KEY_NOT_SET');
+    }
+
+    defaultClient = new GeminiClient({ ...config, apiKey });
+  }
+  return defaultClient;
+}
+
+/**
+ * GeminiClient 싱글톤 가져오기 (동기)
+ * 주의: 이미 초기화된 클라이언트가 있거나 config.apiKey가 제공될 때만 사용
+ */
 export function getGeminiClient(config?: GeminiClientConfig): GeminiClient {
   if (!defaultClient) {
     defaultClient = new GeminiClient(config);
@@ -368,4 +403,11 @@ export function getGeminiClient(config?: GeminiClientConfig): GeminiClient {
 
 export function setGeminiClient(client: GeminiClient): void {
   defaultClient = client;
+}
+
+/**
+ * GeminiClient 싱글톤 리셋 (API 키 변경 시 호출)
+ */
+export function resetGeminiClient(): void {
+  defaultClient = null;
 }

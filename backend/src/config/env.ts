@@ -66,8 +66,7 @@ const envSchema = z.object({
   RATELIMIT_MAX: z.coerce.number().positive().default(100),
   RATELIMIT_WINDOWMS: msStringSchema.default('10s'),
 
-  // Gemini API 설정
-  GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
+  // Gemini Safety Settings (API 키는 DB에서 관리)
   GEMINI_SAFETY_SETTINGS: z
     .string()
     .default(JSON.stringify(DEFAULT_SAFETY_SETTINGS))

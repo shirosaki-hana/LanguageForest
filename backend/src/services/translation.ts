@@ -135,9 +135,9 @@ export async function updateTranslationConfig(data: {
 }
 
 /**
- * Config에서 GeminiClient 생성
+ * Config에서 GeminiClient 생성 (DB에서 API 키 가져옴)
  */
-function createGeminiClientFromConfig(config: TranslationConfig): GeminiClient {
+async function createGeminiClientFromConfig(config: TranslationConfig): Promise<GeminiClient> {
   const generationConfig: GeminiGenerationConfig = {
     temperature: config.temperature,
     maxOutputTokens: config.maxOutputTokens ?? undefined,
@@ -145,7 +145,14 @@ function createGeminiClientFromConfig(config: TranslationConfig): GeminiClient {
     topK: config.topK ?? undefined,
   };
 
+  // DB에서 API 키 조회
+  const apiKey = await getApiKeyFromDB();
+  if (!apiKey) {
+    throw new Error('API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.');
+  }
+
   return new GeminiClient({
+    apiKey,
     model: config.model,
     defaultGenerationConfig: generationConfig,
   });
@@ -653,7 +660,7 @@ export async function translateChunk(chunkId: string, options: { templateId: str
 
   // 설정 조회 및 클라이언트 생성
   const config = await getTranslationConfig();
-  const client = createGeminiClientFromConfig(config);
+  const client = await createGeminiClientFromConfig(config);
 
   // customDict 오버라이드 적용
   const sessionWithOverride = options?.customDict ? { ...session, customDict: options.customDict } : session;
@@ -727,7 +734,7 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
 
   // 설정을 한 번만 조회하고 클라이언트 생성
   const config = await getTranslationConfig();
-  const client = createGeminiClientFromConfig(config);
+  const client = await createGeminiClientFromConfig(config);
   const template = promptTemplate.content;
 
   const results: ChunkResult[] = [];
@@ -941,3 +948,132 @@ export async function getPartialTranslation(sessionId: string): Promise<string> 
 
   return chunks.map(c => c.translatedText ?? '').join('\n\n');
 }
+
+// ============================================
+// 앱 설정 관리 (API 키 등)
+// ============================================
+
+import type { AppSettings } from '../database/index.js';
+
+/**
+ * API 키 마스킹 (처음 4자리와 마지막 4자리만 표시)
+ */
+function maskApiKey(apiKey: string | null): string | null {
+  if (!apiKey || apiKey.length < 12) return null;
+  return `${apiKey.slice(0, 4)}${'*'.repeat(Math.min(apiKey.length - 8, 20))}${apiKey.slice(-4)}`;
+}
+
+/**
+ * 앱 설정 조회 (없으면 기본값으로 생성)
+ */
+export async function getAppSettings(): Promise<{
+  id: number;
+  geminiApiKey: string | null;
+  hasApiKey: boolean;
+  updatedAt: string;
+}> {
+  let settings = await db.selectFrom('app_settings').selectAll().executeTakeFirst();
+
+  if (!settings) {
+    const now = nowISOString();
+    settings = await db
+      .insertInto('app_settings')
+      .values({
+        id: 1,
+        geminiApiKey: null,
+        updatedAt: now,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  return {
+    id: settings.id,
+    geminiApiKey: maskApiKey(settings.geminiApiKey),
+    hasApiKey: !!settings.geminiApiKey,
+    updatedAt: settings.updatedAt,
+  };
+}
+
+/**
+ * API 키 업데이트
+ */
+export async function updateApiKey(apiKey: string): Promise<{
+  success: boolean;
+  hasApiKey: boolean;
+  updatedAt: string;
+}> {
+  const now = nowISOString();
+
+  // 기존 설정이 있는지 확인
+  const existing = await db.selectFrom('app_settings').selectAll().executeTakeFirst();
+
+  if (existing) {
+    await db
+      .updateTable('app_settings')
+      .set({
+        geminiApiKey: apiKey,
+        updatedAt: now,
+      })
+      .where('id', '=', 1)
+      .execute();
+  } else {
+    await db
+      .insertInto('app_settings')
+      .values({
+        id: 1,
+        geminiApiKey: apiKey,
+        updatedAt: now,
+      })
+      .execute();
+  }
+
+  // GeminiClient 싱글톤 초기화 (새 API 키로 재생성되도록)
+  resetGeminiClient();
+
+  return {
+    success: true,
+    hasApiKey: true,
+    updatedAt: now,
+  };
+}
+
+/**
+ * API 키 삭제
+ */
+export async function deleteApiKey(): Promise<{
+  success: boolean;
+  updatedAt: string;
+}> {
+  const now = nowISOString();
+
+  await db
+    .updateTable('app_settings')
+    .set({
+      geminiApiKey: null,
+      updatedAt: now,
+    })
+    .where('id', '=', 1)
+    .execute();
+
+  // GeminiClient 싱글톤 초기화
+  resetGeminiClient();
+
+  return {
+    success: true,
+    updatedAt: now,
+  };
+}
+
+/**
+ * DB에서 API 키 조회 (암호화되지 않은 원본)
+ */
+export async function getApiKeyFromDB(): Promise<string | null> {
+  const settings = await db.selectFrom('app_settings').select('geminiApiKey').executeTakeFirst();
+  return settings?.geminiApiKey ?? null;
+}
+
+/**
+ * GeminiClient 싱글톤 리셋 함수 import
+ */
+import { resetGeminiClient } from '../external/gemini.js';
