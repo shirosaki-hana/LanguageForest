@@ -8,7 +8,7 @@ import type {
   ProgressInfo,
   TranslationSessionStatus,
 } from '@languageforest/sharedtype';
-import type { TranslationSession, TranslationChunk } from '../database/prismaclient/index.js';
+import type { TranslationSession, TranslationChunk } from '../database/index.js';
 
 // ============================================
 // 세션별 이벤트 이미터 관리
@@ -76,7 +76,7 @@ export function emitChunkStart(sessionId: string, chunkId: string, order: number
 export function emitChunkProgress(sessionId: string, chunk: TranslationChunk, allChunks: TranslationChunk[]): void {
   const progress = calculateProgress(allChunks);
 
-  // Prisma 타입을 API 타입으로 변환
+  // DB 타입을 API 타입으로 변환 (날짜는 이미 ISO 문자열)
   const event: WsChunkProgressEvent = {
     type: 'chunk:progress',
     sessionId,
@@ -91,8 +91,8 @@ export function emitChunkProgress(sessionId: string, chunk: TranslationChunk, al
       retryCount: chunk.retryCount,
       tokenCount: chunk.tokenCount,
       processingTime: chunk.processingTime,
-      createdAt: chunk.createdAt.toISOString(),
-      updatedAt: chunk.updatedAt.toISOString(),
+      createdAt: chunk.createdAt,
+      updatedAt: chunk.updatedAt,
     },
     progress,
   };
@@ -131,8 +131,8 @@ export function emitSessionComplete(sessionId: string, session: TranslationSessi
       translatedText: session.translatedText,
       status: session.status as TranslationSessionStatus,
       totalChunks: session.totalChunks,
-      createdAt: session.createdAt.toISOString(),
-      updatedAt: session.updatedAt.toISOString(),
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
     },
     translatedText: session.translatedText,
   };

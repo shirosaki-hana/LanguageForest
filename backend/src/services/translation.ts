@@ -1,9 +1,9 @@
-import { database } from '../database/index.js';
+import { db, generateCuid, nowISOString } from '../database/index.js';
+import type { TranslationSession, TranslationChunk, TranslationConfig } from '../database/index.js';
 import { GeminiClient, type GeminiGenerationConfig } from '../external/gemini.js';
 import { buildPromptFromDB } from '../translation/promptBuilder.js';
 import { splitIntoChunks } from '../translation/chunker.js';
 import type { ChunkInfo } from '../translation/promptBuilder.js';
-import type { TranslationSession, TranslationChunk, TranslationConfig } from '../database/prismaclient/index.js';
 import { emitChunkStart, emitChunkProgress, emitSessionStatus, emitSessionComplete } from './translationEvents.js';
 import { templateService } from './templateService.js';
 import { logger } from '../utils/index.js';
@@ -62,18 +62,24 @@ export interface TranslationProgress {
  * 전역 번역 설정 조회 (없으면 기본값으로 생성)
  */
 export async function getTranslationConfig(): Promise<TranslationConfig> {
-  let config = await database.translationConfig.findFirst();
+  let config = await db.selectFrom('translation_config').selectAll().executeTakeFirst();
 
   if (!config) {
-    config = await database.translationConfig.create({
-      data: {
+    const now = nowISOString();
+    config = await db
+      .insertInto('translation_config')
+      .values({
         id: 1,
         model: DEFAULT_MODEL_ID,
         chunkSize: 2000,
         temperature: 1.0,
         maxOutputTokens: 32000,
-      },
-    });
+        topP: null,
+        topK: null,
+        updatedAt: now,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 
   return config;
@@ -90,19 +96,42 @@ export async function updateTranslationConfig(data: {
   topP?: number;
   topK?: number;
 }): Promise<TranslationConfig> {
-  return database.translationConfig.upsert({
-    where: { id: 1 },
-    update: data,
-    create: {
-      id: 1,
-      model: data.model ?? DEFAULT_MODEL_ID,
-      chunkSize: data.chunkSize ?? 2000,
-      temperature: data.temperature ?? 1.0,
-      maxOutputTokens: data.maxOutputTokens ?? 32000,
-      topP: data.topP,
-      topK: data.topK,
-    },
-  });
+  const now = nowISOString();
+
+  // upsert 구현: 먼저 존재 여부 확인
+  const existing = await db.selectFrom('translation_config').select('id').where('id', '=', 1).executeTakeFirst();
+
+  if (existing) {
+    return await db
+      .updateTable('translation_config')
+      .set({
+        ...(data.model !== undefined && { model: data.model }),
+        ...(data.chunkSize !== undefined && { chunkSize: data.chunkSize }),
+        ...(data.temperature !== undefined && { temperature: data.temperature }),
+        ...(data.maxOutputTokens !== undefined && { maxOutputTokens: data.maxOutputTokens }),
+        ...(data.topP !== undefined && { topP: data.topP }),
+        ...(data.topK !== undefined && { topK: data.topK }),
+        updatedAt: now,
+      })
+      .where('id', '=', 1)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  } else {
+    return await db
+      .insertInto('translation_config')
+      .values({
+        id: 1,
+        model: data.model ?? DEFAULT_MODEL_ID,
+        chunkSize: data.chunkSize ?? 2000,
+        temperature: data.temperature ?? 1.0,
+        maxOutputTokens: data.maxOutputTokens ?? 32000,
+        topP: data.topP ?? null,
+        topK: data.topK ?? null,
+        updatedAt: now,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
 }
 
 /**
@@ -130,34 +159,41 @@ function createGeminiClientFromConfig(config: TranslationConfig): GeminiClient {
  * 새 번역 세션 생성
  */
 export async function createSession(input: CreateSessionInput): Promise<TranslationSession> {
-  return database.translationSession.create({
-    data: {
+  const now = nowISOString();
+
+  return await db
+    .insertInto('translation_sessions')
+    .values({
+      id: generateCuid(),
       title: input.title,
-      memo: input.memo,
-      customDict: input.customDict,
+      memo: input.memo ?? null,
+      customDict: input.customDict ?? null,
       status: 'draft',
       originalFileName: null,
+      sourceText: null,
+      translatedText: null,
       totalChunks: 0,
-    },
-  });
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
 }
 
 /**
  * 세션 조회
  */
 export async function getSession(sessionId: string): Promise<TranslationSession | null> {
-  return database.translationSession.findUnique({
-    where: { id: sessionId },
-  });
+  const result = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
+
+  return result ?? null;
 }
 
 /**
  * 세션 목록 조회
  */
 export async function listSessions(): Promise<TranslationSession[]> {
-  return database.translationSession.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  return await db.selectFrom('translation_sessions').selectAll().orderBy('createdAt', 'desc').execute();
 }
 
 /**
@@ -167,29 +203,31 @@ export async function updateSession(
   sessionId: string,
   data: Partial<Pick<TranslationSession, 'title' | 'memo' | 'customDict'>>
 ): Promise<TranslationSession> {
-  return database.translationSession.update({
-    where: { id: sessionId },
-    data,
-  });
+  const now = nowISOString();
+
+  return await db
+    .updateTable('translation_sessions')
+    .set({
+      ...data,
+      updatedAt: now,
+    })
+    .where('id', '=', sessionId)
+    .returningAll()
+    .executeTakeFirstOrThrow();
 }
 
 /**
  * 세션 삭제 (청크도 함께 삭제됨 - CASCADE)
  */
 export async function deleteSession(sessionId: string): Promise<void> {
-  await database.translationSession.delete({
-    where: { id: sessionId },
-  });
+  await db.deleteFrom('translation_sessions').where('id', '=', sessionId).execute();
 }
 
 /**
  * 세션의 청크 목록 조회 (전체)
  */
 export async function getSessionChunks(sessionId: string): Promise<TranslationChunk[]> {
-  return database.translationChunk.findMany({
-    where: { sessionId },
-    orderBy: { order: 'asc' },
-  });
+  return await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).orderBy('order', 'asc').execute();
 }
 
 /**
@@ -210,22 +248,26 @@ export async function getSessionChunksPaginated(
   options: { page: number; limit: number; status?: string }
 ): Promise<PaginatedChunksResult> {
   const { page, limit, status } = options;
-  const skip = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
-  const where = {
-    sessionId,
-    ...(status && { status }),
-  };
+  // 기본 쿼리 빌더
+  let query = db.selectFrom('translation_chunks').where('sessionId', '=', sessionId);
 
-  const [chunks, total] = await Promise.all([
-    database.translationChunk.findMany({
-      where,
-      orderBy: { order: 'asc' },
-      skip,
-      take: limit,
-    }),
-    database.translationChunk.count({ where }),
-  ]);
+  let countQuery = db.selectFrom('translation_chunks').where('sessionId', '=', sessionId);
+
+  // status 필터 적용
+  if (status) {
+    query = query.where('status', '=', status);
+    countQuery = countQuery.where('status', '=', status);
+  }
+
+  // 데이터 조회
+  const chunks = await query.selectAll().orderBy('order', 'asc').offset(offset).limit(limit).execute();
+
+  // 총 개수 조회
+  const countResult = await countQuery.select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow();
+
+  const total = Number(countResult.count);
 
   return {
     chunks,
@@ -274,43 +316,55 @@ export async function uploadFileAndChunk(input: FileUploadInput): Promise<FileUp
     throw Object.assign(new Error('No content to translate'), { statusCode: 400 });
   }
 
+  const now = nowISOString();
+
   // 트랜잭션으로 원자적 업데이트
-  const session = await database.$transaction(async tx => {
+  const session = await db.transaction().execute(async trx => {
     // 세션 조회
-    const existingSession = await tx.translationSession.findUnique({
-      where: { id: sessionId },
-    });
+    const existingSession = await trx.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
     if (!existingSession) {
       throw Object.assign(new Error('Session not found'), { statusCode: 404 });
     }
 
     // 기존 청크 삭제 (재업로드 시)
-    await tx.translationChunk.deleteMany({
-      where: { sessionId },
-    });
+    await trx.deleteFrom('translation_chunks').where('sessionId', '=', sessionId).execute();
 
     // 청크 DB에 저장
-    await tx.translationChunk.createMany({
-      data: chunks.map((text, index) => ({
-        sessionId,
-        order: index,
-        sourceText: text,
-        status: 'pending',
-      })),
-    });
+    for (let index = 0; index < chunks.length; index++) {
+      await trx
+        .insertInto('translation_chunks')
+        .values({
+          id: generateCuid(),
+          sessionId,
+          order: index,
+          sourceText: chunks[index],
+          translatedText: null,
+          status: 'pending',
+          errorMessage: null,
+          retryCount: 0,
+          tokenCount: null,
+          processingTime: null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .execute();
+    }
 
     // 세션 업데이트
-    return tx.translationSession.update({
-      where: { id: sessionId },
-      data: {
+    return await trx
+      .updateTable('translation_sessions')
+      .set({
         originalFileName: fileName,
         sourceText: content,
         translatedText: null,
         status: 'ready',
         totalChunks: chunks.length,
-      },
-    });
+        updatedAt: now,
+      })
+      .where('id', '=', sessionId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   });
 
   return {
@@ -326,19 +380,20 @@ export async function uploadFileAndChunk(input: FileUploadInput): Promise<FileUp
  * 번역문 다운로드 (완료된 청크들 조립)
  */
 export async function getTranslationForDownload(sessionId: string): Promise<{ content: string; fileName: string }> {
-  const session = await database.translationSession.findUnique({
-    where: { id: sessionId },
-  });
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
 
   // 완료된 청크들 조회
-  const chunks = await database.translationChunk.findMany({
-    where: { sessionId, status: 'completed' },
-    orderBy: { order: 'asc' },
-  });
+  const chunks = await db
+    .selectFrom('translation_chunks')
+    .selectAll()
+    .where('sessionId', '=', sessionId)
+    .where('status', '=', 'completed')
+    .orderBy('order', 'asc')
+    .execute();
 
   const content = chunks.map(c => c.translatedText ?? '').join('\n\n');
 
@@ -373,40 +428,51 @@ export async function startTranslation(input: StartTranslationInput): Promise<Tr
     throw Object.assign(new Error('No content to translate'), { statusCode: 400 });
   }
 
+  const now = nowISOString();
+
   // 트랜잭션으로 원자적 업데이트
-  await database.$transaction(async tx => {
+  await db.transaction().execute(async trx => {
     // 세션 조회
-    const session = await tx.translationSession.findUnique({
-      where: { id: sessionId },
-    });
+    const session = await trx.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
     if (!session) {
       throw Object.assign(new Error('Session not found'), { statusCode: 404 });
     }
 
     // 기존 청크 삭제 (재시작 시)
-    await tx.translationChunk.deleteMany({
-      where: { sessionId },
-    });
+    await trx.deleteFrom('translation_chunks').where('sessionId', '=', sessionId).execute();
 
     // 청크 DB에 저장
-    await tx.translationChunk.createMany({
-      data: chunks.map((text, index) => ({
-        sessionId,
-        order: index,
-        sourceText: text,
-        status: 'pending',
-      })),
-    });
+    for (let index = 0; index < chunks.length; index++) {
+      await trx
+        .insertInto('translation_chunks')
+        .values({
+          id: generateCuid(),
+          sessionId,
+          order: index,
+          sourceText: chunks[index],
+          translatedText: null,
+          status: 'pending',
+          errorMessage: null,
+          retryCount: 0,
+          tokenCount: null,
+          processingTime: null,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .execute();
+    }
 
     // 세션 상태 업데이트 (청킹 완료 = ready 상태)
-    await tx.translationSession.update({
-      where: { id: sessionId },
-      data: {
+    await trx
+      .updateTable('translation_sessions')
+      .set({
         sourceText,
         status: 'ready',
-      },
-    });
+        updatedAt: now,
+      })
+      .where('id', '=', sessionId)
+      .execute();
   });
 
   return getTranslationProgress(sessionId);
@@ -416,17 +482,13 @@ export async function startTranslation(input: StartTranslationInput): Promise<Tr
  * 번역 진행 상황 조회
  */
 export async function getTranslationProgress(sessionId: string): Promise<TranslationProgress> {
-  const session = await database.translationSession.findUnique({
-    where: { id: sessionId },
-  });
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
 
-  const chunks = await database.translationChunk.findMany({
-    where: { sessionId },
-  });
+  const chunks = await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).execute();
 
   const completed = chunks.filter(c => c.status === 'completed').length;
   const failed = chunks.filter(c => c.status === 'failed').length;
@@ -457,15 +519,13 @@ interface TranslateSingleChunkInput {
 async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<ChunkResult> {
   const { chunk, session, allChunks, client, template } = input;
   const startTime = Date.now();
+  const now = nowISOString();
 
   // 청크 시작 이벤트 발송
   emitChunkStart(session.id, chunk.id, chunk.order);
 
   // 상태를 processing으로 업데이트
-  await database.translationChunk.update({
-    where: { id: chunk.id },
-    data: { status: 'processing' },
-  });
+  await db.updateTable('translation_chunks').set({ status: 'processing', updatedAt: now }).where('id', '=', chunk.id).execute();
 
   try {
     // ChunkInfo 형태로 변환
@@ -508,16 +568,19 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
     const processingTime = Date.now() - startTime;
 
     // 성공 - 청크 업데이트
-    const updatedChunk = await database.translationChunk.update({
-      where: { id: chunk.id },
-      data: {
+    const updatedChunk = await db
+      .updateTable('translation_chunks')
+      .set({
         status: 'completed',
         translatedText,
         processingTime,
         tokenCount: usage.totalTokens,
         errorMessage: null,
-      },
-    });
+        updatedAt: nowISOString(),
+      })
+      .where('id', '=', chunk.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
     // 청크 진행 상황 이벤트 발송
     const updatedChunks = allChunks.map(c => (c.id === chunk.id ? updatedChunk : c));
@@ -533,14 +596,17 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // 실패 - 청크 업데이트
-    const updatedChunk = await database.translationChunk.update({
-      where: { id: chunk.id },
-      data: {
+    const updatedChunk = await db
+      .updateTable('translation_chunks')
+      .set({
         status: 'failed',
         errorMessage,
-        retryCount: { increment: 1 },
-      },
-    });
+        retryCount: chunk.retryCount + 1,
+        updatedAt: nowISOString(),
+      })
+      .where('id', '=', chunk.id)
+      .returningAll()
+      .executeTakeFirstOrThrow();
 
     // 청크 진행 상황 이벤트 발송 (실패)
     const updatedChunks = allChunks.map(c => (c.id === chunk.id ? updatedChunk : c));
@@ -560,31 +626,37 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
  * 프론트엔드가 완전한 TranslationChunk를 기대하므로 전체 객체 반환
  */
 export async function translateChunk(chunkId: string, options: { templateId: string; customDict?: string }): Promise<TranslationChunk> {
-  // 청크 조회 (세션 포함)
-  const chunk = await database.translationChunk.findUnique({
-    where: { id: chunkId },
-    include: { session: true },
-  });
+  // 청크 조회
+  const chunk = await db.selectFrom('translation_chunks').selectAll().where('id', '=', chunkId).executeTakeFirst();
 
   if (!chunk) {
     throw Object.assign(new Error('Chunk not found'), { statusCode: 404 });
+  }
+
+  // 세션 조회
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', chunk.sessionId).executeTakeFirst();
+
+  if (!session) {
+    throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
 
   // 템플릿 조회
   const promptTemplate = templateService.getByIdOrThrow(options.templateId);
 
   // 모든 청크 조회 (프롬프트 빌더용)
-  const allChunks = await database.translationChunk.findMany({
-    where: { sessionId: chunk.sessionId },
-    orderBy: { order: 'asc' },
-  });
+  const allChunks = await db
+    .selectFrom('translation_chunks')
+    .selectAll()
+    .where('sessionId', '=', chunk.sessionId)
+    .orderBy('order', 'asc')
+    .execute();
 
   // 설정 조회 및 클라이언트 생성
   const config = await getTranslationConfig();
   const client = createGeminiClientFromConfig(config);
 
   // customDict 오버라이드 적용
-  const sessionWithOverride = options?.customDict ? { ...chunk.session, customDict: options.customDict } : chunk.session;
+  const sessionWithOverride = options?.customDict ? { ...session, customDict: options.customDict } : session;
 
   const result = await translateSingleChunk({
     chunk,
@@ -601,9 +673,7 @@ export async function translateChunk(chunkId: string, options: { templateId: str
   }
 
   // 업데이트된 전체 청크 조회해서 반환
-  const updatedChunk = await database.translationChunk.findUnique({
-    where: { id: chunkId },
-  });
+  const updatedChunk = await db.selectFrom('translation_chunks').selectAll().where('id', '=', chunkId).executeTakeFirst();
 
   if (!updatedChunk) {
     throw Object.assign(new Error('Chunk not found after translation'), { statusCode: 500 });
@@ -618,42 +688,40 @@ export async function translateChunk(chunkId: string, options: { templateId: str
  * 중지(pause) 시 현재 청크 완료 후 중단
  */
 export async function translateAllPendingChunks(sessionId: string, options: { templateId: string }): Promise<ChunkResult[]> {
-  // 세션과 청크를 한 번에 조회
-  const session = await database.translationSession.findUnique({
-    where: { id: sessionId },
-    include: {
-      chunks: {
-        orderBy: { order: 'asc' },
-      },
-    },
-  });
+  // 세션 조회
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
   }
 
+  // 청크들 조회
+  const allChunks = await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).orderBy('order', 'asc').execute();
+
   // 템플릿 조회
   const promptTemplate = templateService.getByIdOrThrow(options.templateId);
 
   // 세션 상태를 translating으로 변경
-  await database.translationSession.update({
-    where: { id: sessionId },
-    data: { status: 'translating' },
-  });
+  await db
+    .updateTable('translation_sessions')
+    .set({ status: 'translating', updatedAt: nowISOString() })
+    .where('id', '=', sessionId)
+    .execute();
 
   // 상태 변경 이벤트 발송
-  emitSessionStatus(sessionId, 'translating', session.chunks);
+  emitSessionStatus(sessionId, 'translating', allChunks);
 
   // pending/failed 상태의 청크들 필터링
-  const pendingChunks = session.chunks.filter(c => c.status === 'pending' || c.status === 'failed');
+  const pendingChunks = allChunks.filter(c => c.status === 'pending' || c.status === 'failed');
 
   if (pendingChunks.length === 0) {
     // 이미 모두 완료된 경우
-    await database.translationSession.update({
-      where: { id: sessionId },
-      data: { status: 'completed' },
-    });
-    emitSessionStatus(sessionId, 'completed', session.chunks);
+    await db
+      .updateTable('translation_sessions')
+      .set({ status: 'completed', updatedAt: nowISOString() })
+      .where('id', '=', sessionId)
+      .execute();
+    emitSessionStatus(sessionId, 'completed', allChunks);
     return [];
   }
 
@@ -663,14 +731,12 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
   const template = promptTemplate.content;
 
   const results: ChunkResult[] = [];
+  const mutableChunks = [...allChunks]; // 청크 목록 복사 (변경 추적용)
 
   // 순차적으로 번역 (이전 청크 컨텍스트 필요)
   for (const chunk of pendingChunks) {
     // 🔴 매 청크 전에 DB에서 세션 상태 확인 (단일 신뢰 원천)
-    const currentSession = await database.translationSession.findUnique({
-      where: { id: sessionId },
-      select: { status: true },
-    });
+    const currentSession = await db.selectFrom('translation_sessions').select('status').where('id', '=', sessionId).executeTakeFirst();
 
     // paused 상태면 루프 중단 - 남은 청크들은 pending 유지
     if (currentSession?.status === 'paused') {
@@ -680,7 +746,7 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
     const result = await translateSingleChunk({
       chunk,
       session,
-      allChunks: session.chunks,
+      allChunks: mutableChunks,
       config,
       client,
       template,
@@ -688,10 +754,10 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
     results.push(result);
 
     // 청크 목록 업데이트 (다음 청크의 컨텍스트용)
-    const chunkIndex = session.chunks.findIndex(c => c.id === chunk.id);
+    const chunkIndex = mutableChunks.findIndex(c => c.id === chunk.id);
     if (chunkIndex !== -1 && result.status === 'completed') {
-      session.chunks[chunkIndex] = {
-        ...session.chunks[chunkIndex],
+      mutableChunks[chunkIndex] = {
+        ...mutableChunks[chunkIndex],
         status: 'completed',
         translatedText: result.translatedText ?? null,
       };
@@ -699,10 +765,7 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
   }
 
   // 최종 상태 확인 (중간에 paused 되었을 수 있음)
-  const finalSession = await database.translationSession.findUnique({
-    where: { id: sessionId },
-    select: { status: true },
-  });
+  const finalSession = await db.selectFrom('translation_sessions').select('status').where('id', '=', sessionId).executeTakeFirst();
 
   // paused 상태가 아닐 때만 최종 상태 업데이트
   if (finalSession?.status !== 'paused') {
@@ -719,20 +782,19 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
       finalStatus = 'completed';
     }
 
-    await database.translationSession.update({
-      where: { id: sessionId },
-      data: { status: finalStatus },
-    });
+    await db
+      .updateTable('translation_sessions')
+      .set({ status: finalStatus, updatedAt: nowISOString() })
+      .where('id', '=', sessionId)
+      .execute();
 
     // 상태 변경 이벤트 발송
-    emitSessionStatus(sessionId, finalStatus as 'completed' | 'failed' | 'paused', session.chunks);
+    emitSessionStatus(sessionId, finalStatus as 'completed' | 'failed' | 'paused', mutableChunks);
 
     // 모두 성공했으면 번역문 조립 및 완료 이벤트
     if (finalStatus === 'completed') {
       await assembleTranslation(sessionId);
-      const completedSession = await database.translationSession.findUnique({
-        where: { id: sessionId },
-      });
+      const completedSession = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
       if (completedSession) {
         emitSessionComplete(sessionId, completedSession);
       }
@@ -751,10 +813,7 @@ export async function translateAllPendingChunks(sessionId: string, options: { te
  * 현재 처리 중인 청크가 완료된 후 중단됨
  */
 export async function pauseTranslation(sessionId: string): Promise<TranslationSession> {
-  const session = await database.translationSession.findUnique({
-    where: { id: sessionId },
-    include: { chunks: true },
-  });
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -765,13 +824,18 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
     throw Object.assign(new Error(`Cannot pause session in '${session.status}' state`), { statusCode: 400 });
   }
 
-  const updatedSession = await database.translationSession.update({
-    where: { id: sessionId },
-    data: { status: 'paused' },
-  });
+  const updatedSession = await db
+    .updateTable('translation_sessions')
+    .set({ status: 'paused', updatedAt: nowISOString() })
+    .where('id', '=', sessionId)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  // 청크 목록 조회 (이벤트용)
+  const chunks = await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).execute();
 
   // 상태 변경 이벤트 발송
-  emitSessionStatus(sessionId, 'paused', session.chunks);
+  emitSessionStatus(sessionId, 'paused', chunks);
 
   return updatedSession;
 }
@@ -781,9 +845,7 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
  * paused 상태에서 pending 청크들을 다시 번역 시작
  */
 export async function resumeTranslation(sessionId: string, options: { templateId: string }): Promise<void> {
-  const session = await database.translationSession.findUnique({
-    where: { id: sessionId },
-  });
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -806,10 +868,7 @@ export async function resumeTranslation(sessionId: string, options: { templateId
  * 프론트엔드가 완전한 TranslationChunk를 기대하므로 전체 객체 반환
  */
 export async function retryFailedChunk(chunkId: string, options: { templateId: string }): Promise<TranslationChunk> {
-  const chunk = await database.translationChunk.findUnique({
-    where: { id: chunkId },
-    include: { session: true },
-  });
+  const chunk = await db.selectFrom('translation_chunks').selectAll().where('id', '=', chunkId).executeTakeFirst();
 
   if (!chunk) {
     throw Object.assign(new Error('Chunk not found'), { statusCode: 404 });
@@ -819,15 +878,19 @@ export async function retryFailedChunk(chunkId: string, options: { templateId: s
     throw Object.assign(new Error('Chunk is not in failed state'), { statusCode: 400 });
   }
 
+  // 세션 조회 (customDict 가져오기용)
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', chunk.sessionId).executeTakeFirst();
+
   // pending으로 리셋
-  await database.translationChunk.update({
-    where: { id: chunkId },
-    data: { status: 'pending' },
-  });
+  await db
+    .updateTable('translation_chunks')
+    .set({ status: 'pending', updatedAt: nowISOString() })
+    .where('id', '=', chunkId)
+    .execute();
 
   return translateChunk(chunkId, {
     templateId: options.templateId,
-    customDict: chunk.session.customDict ?? undefined,
+    customDict: session?.customDict ?? undefined,
   });
 }
 
@@ -839,10 +902,12 @@ export async function retryFailedChunk(chunkId: string, options: { templateId: s
  * 완료된 청크들을 조립하여 번역문 업데이트
  */
 async function assembleTranslation(sessionId: string): Promise<void> {
-  const chunks = await database.translationChunk.findMany({
-    where: { sessionId },
-    orderBy: { order: 'asc' },
-  });
+  const chunks = await db
+    .selectFrom('translation_chunks')
+    .selectAll()
+    .where('sessionId', '=', sessionId)
+    .orderBy('order', 'asc')
+    .execute();
 
   // 모든 청크가 완료된 경우에만 조립
   const allCompleted = chunks.every(c => c.status === 'completed');
@@ -850,13 +915,15 @@ async function assembleTranslation(sessionId: string): Promise<void> {
   if (allCompleted && chunks.length > 0) {
     const translatedText = chunks.map(c => c.translatedText ?? '').join('\n\n');
 
-    await database.translationSession.update({
-      where: { id: sessionId },
-      data: {
+    await db
+      .updateTable('translation_sessions')
+      .set({
         translatedText,
         status: 'completed',
-      },
-    });
+        updatedAt: nowISOString(),
+      })
+      .where('id', '=', sessionId)
+      .execute();
   }
 }
 
@@ -864,13 +931,13 @@ async function assembleTranslation(sessionId: string): Promise<void> {
  * 부분 번역문 조회 (완료된 청크들만)
  */
 export async function getPartialTranslation(sessionId: string): Promise<string> {
-  const chunks = await database.translationChunk.findMany({
-    where: {
-      sessionId,
-      status: 'completed',
-    },
-    orderBy: { order: 'asc' },
-  });
+  const chunks = await db
+    .selectFrom('translation_chunks')
+    .selectAll()
+    .where('sessionId', '=', sessionId)
+    .where('status', '=', 'completed')
+    .orderBy('order', 'asc')
+    .execute();
 
   return chunks.map(c => c.translatedText ?? '').join('\n\n');
 }

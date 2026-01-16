@@ -11,7 +11,7 @@ import apiRoutes from './api/index.js';
 import { websocketRoutes } from './api/websocket.js';
 import { console_log } from './utils/index.js';
 import { env, fastifyConfig, helmetConfig, rateLimitConfig, corsConfig, staticFilesConfig } from './config/index.js';
-import { checkDatabaseConnection, disconnectDatabase } from './database/index.js';
+import { initializeDatabase, disconnectDatabase } from './database/index.js';
 import { notFoundHandler, errorHandler } from './handlers/index.js';
 import { initializeLogger } from './services/logs.js';
 import { templateService } from './services/templateService.js';
@@ -42,7 +42,7 @@ async function createFastifyApp() {
 // 서버 시작 함수
 async function startServer(host: string, port: number) {
   //앱 초기 동작 (Fastify 생성 전)
-  await checkDatabaseConnection(); // 1. 데이터베이스 커넥션 확인
+  await initializeDatabase(); // 1. 데이터베이스 초기화 (마이그레이션 실행 포함)
   initializeLogger(); // 2. 로거 초기화 (Fastify 로거가 사용하므로 먼저 초기화)
   templateService.initialize(); // 3. 템플릿 서비스 초기화 (템플릿 없으면 예외 발생)
   console_log(`Loaded ${templateService.count()} prompt template(s)`);

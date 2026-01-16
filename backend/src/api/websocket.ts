@@ -82,8 +82,8 @@ async function handleSubscribe(client: ClientConnection, sessionId: string): Pro
       sourceText: session.sourceText,
       translatedText: session.translatedText,
       status: session.status,
-      createdAt: session.createdAt.toISOString(),
-      updatedAt: session.updatedAt.toISOString(),
+      createdAt: session.createdAt,
+      updatedAt: session.updatedAt,
     },
     progress,
   });
