@@ -12,21 +12,14 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig([
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/prisma/migrations/**',
-      '**/prismaclient**',
-      '**/test/**',
-      '**/temp/**'
-    ],
+    ignores: ['**/out/**', '**/dist/**', '**/node_modules/**', '**/build/**'],
   },
   // Base recommended configs
   js.configs.recommended,
   ...tseslint.configs.recommended,
-  // Backend TypeScript rules
+  // Main process (Node.js)
   {
-    files: ['backend/**/*.ts'],
+    files: ['src/main/**/*.ts', 'src/preload/**/*.ts'],
     languageOptions: {
       ecmaVersion: 2024,
       parser: tseslint.parser,
@@ -42,33 +35,14 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
-      'no-console': 'error',
+      'no-console': 'off', // Electron main process에서는 console 허용
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
-      'no-process-exit': 'error',
-      'no-sync': 'warn',
     },
   },
-  // Backend JavaScript rules
+  // Renderer process (React)
   {
-    files: ['backend/**/*.{js,mjs}'],
-    languageOptions: {
-      ecmaVersion: 2024,
-      globals: { ...globals.node, ...globals.es2025 },
-    },
-    rules: {
-      'prefer-const': 'error',
-      'no-var': 'error',
-      'no-console': 'error',
-      eqeqeq: ['error', 'always'],
-      curly: ['error', 'all'],
-      'no-process-exit': 'error',
-      'no-sync': 'warn',
-    },
-  },
-  // Frontend TypeScript / TSX rules
-  {
-    files: ['frontend/**/*.{ts,tsx}'],
+    files: ['src/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2023,
       parser: tseslint.parser,
@@ -86,7 +60,22 @@ export default defineConfig([
       '@typescript-eslint/no-explicit-any': 'error',
       'no-console': 'error',
     },
-  }
+  },
+  // Shared types
+  {
+    files: ['src/shared/**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      parser: tseslint.parser,
+      parserOptions: { tsconfigRootDir: __dirname },
+      globals: { ...globals.es2025 },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
 ]);
-
-

@@ -1,7 +1,4 @@
-packages:
-  - backend
-  - frontend
-  - packages/sharedtype
-
 onlyBuiltDependencies:
+  - electron
+  - electron-winstaller
   - esbuild
