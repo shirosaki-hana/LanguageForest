@@ -2,9 +2,20 @@ import { resolve } from 'path';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 
+// 번들에 포함시킬 의존성 목록
+const bundledDeps = [
+  '@electron-toolkit/utils',
+  '@electron-toolkit/preload',
+  'kysely',
+  'axios',
+  'zod',
+  'handlebars',
+  'yaml',
+];
+
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: bundledDeps })],
     resolve: {
       alias: {
         '@shared': resolve('src/shared'),
@@ -19,7 +30,7 @@ export default defineConfig({
     },
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: bundledDeps })],
     resolve: {
       alias: {
         '@shared': resolve('src/shared'),

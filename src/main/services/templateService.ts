@@ -1,8 +1,9 @@
 import { app } from 'electron';
 import { readFileSync, readdirSync } from 'fs';
 import { join, basename, extname } from 'path';
-import matter from 'gray-matter';
+import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
+import { parseFrontMatter } from '../utils';
 
 // ============================================
 // 타입 정의
@@ -74,9 +75,9 @@ class TemplateService {
 
       try {
         const content = readFileSync(filePath, 'utf-8');
-        const parsed = matter(content);
+        const parsed = parseFrontMatter(content);
 
-        const frontmatter = TemplateFrontmatterSchema.parse(parsed.data);
+        const frontmatter = TemplateFrontmatterSchema.parse(parseYaml(parsed.data));
 
         const template: PromptTemplate = {
           id,
