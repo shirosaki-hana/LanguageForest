@@ -13,11 +13,9 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Pagination,
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
   LinearProgress,
   Collapse,
   useTheme,
@@ -40,16 +38,10 @@ import type { TranslationChunk, TranslationChunkStatus, ProgressInfo } from '@sh
 
 interface ChunkListViewProps {
   chunks: TranslationChunk[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null;
+  totalChunks: number;
   progress: ProgressInfo | null;
   filter: TranslationChunkStatus | null;
   isTranslating: boolean;
-  onPageChange: (page: number) => void;
   onFilterChange: (status: TranslationChunkStatus | null) => void;
   onRetryChunk: (chunkId: string) => void;
   onTranslateChunk: (chunkId: string) => void;
@@ -184,13 +176,13 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
       <TableRow>
         <TableCell colSpan={6} sx={{ py: 0, borderBottom: expanded ? 1 : 0, borderColor: 'divider' }}>
           <Collapse in={expanded} timeout='auto' unmountOnExit>
-            <Box sx={{ py: 2 }}>
-              <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ py: 1.5 }}>
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant='caption' color='text.secondary' gutterBottom display='block'>
                     {t('translation.sourceText')}
                   </Typography>
-                  <Paper variant='outlined' sx={{ p: 1.5, maxHeight: 200, overflow: 'auto' }}>
+                  <Paper variant='outlined' sx={{ p: 1, maxHeight: 200, overflow: 'auto' }}>
                     <Typography variant='body2' sx={{ whiteSpace: 'pre-wrap' }}>
                       {chunk.sourceText}
                     </Typography>
@@ -203,7 +195,7 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
                   <Paper
                     variant='outlined'
                     sx={{
-                      p: 1.5,
+                      p: 1,
                       maxHeight: 200,
                       overflow: 'auto',
                       bgcolor: chunk.translatedText ? 'inherit' : 'action.disabledBackground',
@@ -251,18 +243,17 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
 
 export default function ChunkListView({
   chunks,
-  pagination,
+  totalChunks,
   progress,
   filter,
   isTranslating,
-  onPageChange,
   onFilterChange,
   onRetryChunk,
   onTranslateChunk,
 }: ChunkListViewProps) {
   const { t } = useTranslation();
 
-  if (!pagination || pagination.total === 0) {
+  if (totalChunks === 0) {
     return (
       <Paper elevation={0} sx={{ p: 4, textAlign: 'center' }}>
         <Typography color='text.secondary'>{t('translation.noChunks')}</Typography>
@@ -275,10 +266,10 @@ export default function ChunkListView({
   return (
     <Paper elevation={0} sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* 헤더 */}
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ p: 1.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant='subtitle1' fontWeight={600}>
-            {t('translation.chunkList')} ({pagination.total})
+            {t('translation.chunkList')} ({filter ? chunks.length : totalChunks})
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             {progress && (
@@ -288,18 +279,24 @@ export default function ChunkListView({
                 <Chip size='small' label={`${progress.pending} ${t('translation.pending')}`} />
               </Box>
             )}
-            <FormControl size='small' sx={{ minWidth: 120 }}>
-              <InputLabel>{t('translation.filter')}</InputLabel>
+            <FormControl size='small' sx={{ minWidth: 100 }}>
               <Select
                 value={filter || ''}
-                label={t('translation.filter')}
                 onChange={e => onFilterChange((e.target.value as TranslationChunkStatus) || null)}
+                displayEmpty
+                sx={{
+                  height: 32,
+                  fontSize: '0.875rem',
+                  '& .MuiSelect-select': {
+                    py: 0.75,
+                  },
+                }}
               >
-                <MenuItem value=''>{t('translation.all')}</MenuItem>
-                <MenuItem value='pending'>{t('translation.chunkStatus.pending')}</MenuItem>
-                <MenuItem value='processing'>{t('translation.chunkStatus.processing')}</MenuItem>
-                <MenuItem value='completed'>{t('translation.chunkStatus.completed')}</MenuItem>
-                <MenuItem value='failed'>{t('translation.chunkStatus.failed')}</MenuItem>
+                <MenuItem value='' sx={{ fontSize: '0.875rem' }}>{t('translation.all')}</MenuItem>
+                <MenuItem value='pending' sx={{ fontSize: '0.875rem' }}>{t('translation.chunkStatus.pending')}</MenuItem>
+                <MenuItem value='processing' sx={{ fontSize: '0.875rem' }}>{t('translation.chunkStatus.processing')}</MenuItem>
+                <MenuItem value='completed' sx={{ fontSize: '0.875rem' }}>{t('translation.chunkStatus.completed')}</MenuItem>
+                <MenuItem value='failed' sx={{ fontSize: '0.875rem' }}>{t('translation.chunkStatus.failed')}</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -353,13 +350,6 @@ export default function ChunkListView({
           </TableBody>
         </Table>
       </TableContainer>
-
-      {/* 페이지네이션 */}
-      {pagination.totalPages > 1 && (
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', borderTop: 1, borderColor: 'divider', flexShrink: 0 }}>
-          <Pagination count={pagination.totalPages} page={pagination.page} onChange={(_, page) => onPageChange(page)} color='primary' />
-        </Box>
-      )}
     </Paper>
   );
 }

@@ -5,11 +5,8 @@ import {
   Button,
   Paper,
   Typography,
-  LinearProgress,
   Chip,
   useTheme,
-  alpha,
-  CircularProgress,
   Tooltip,
   IconButton,
 } from '@mui/material';
@@ -18,7 +15,6 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   HourglassEmpty as PendingIcon,
-  Celebration as CelebrationIcon,
   Refresh as RetryIcon,
   ContentCopy as CopyIcon,
 } from '@mui/icons-material';
@@ -57,11 +53,11 @@ interface StatChipProps {
 function StatChip({ label, value, color, icon }: StatChipProps) {
   return (
     <Chip
-      size='medium'
+      size='small'
       color={color}
       icon={<Box sx={{ display: 'flex', alignItems: 'center' }}>{icon}</Box>}
       label={`${label}: ${value}`}
-      sx={{ fontWeight: 600 }}
+      sx={{ fontWeight: 600, height: 24 }}
     />
   );
 }
@@ -90,7 +86,6 @@ export default function ResultTab({
   const completed = progress?.completed || 0;
   const failed = progress?.failed || 0;
   const pending = progress?.pending || 0;
-  const percent = progress?.percent || 0;
 
   const isCompleted = sessionStatus === 'completed';
   const canDownload = hasCompletedChunks && !isTranslating;
@@ -168,17 +163,17 @@ export default function ResultTab({
   const lineCount = translatedText ? translatedText.split('\n').length : 0;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1 }}>
       {/* 상단 상태 바 */}
       <Paper
         elevation={0}
         sx={{
-          p: 2,
+          px: 1.5,
+          py: 0.75,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 2,
+          gap: 1.5,
           bgcolor: isCompleted
             ? theme.custom.stateBackground.success.light
             : isTranslating
@@ -186,66 +181,46 @@ export default function ResultTab({
               : theme.custom.glassmorphism.light,
           border: 1,
           borderColor: isCompleted ? 'success.main' : isTranslating ? 'primary.main' : 'divider',
-          borderRadius: 2,
+          borderRadius: 1,
         }}
       >
-        {/* 상태 아이콘 & 텍스트 */}
+        {/* 상태 텍스트 & 통계 칩들 */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {isCompleted ? (
-            <CelebrationIcon sx={{ fontSize: 32, color: 'success.main' }} />
-          ) : isTranslating ? (
-            <CircularProgress size={32} />
-          ) : hasFailedChunks ? (
-            <ErrorIcon sx={{ fontSize: 32, color: 'error.main' }} />
-          ) : (
-            <PendingIcon sx={{ fontSize: 32, color: 'text.secondary' }} />
-          )}
-          <Box>
-            <Typography variant='h6' fontWeight={700}>
-              {isCompleted
-                ? t('translation.translationComplete')
-                : isTranslating
-                  ? t('translation.translating')
-                  : hasFailedChunks
-                    ? t('translation.hasFailedChunks')
-                    : t('translation.ready')}
-            </Typography>
-            <Typography variant='body2' color='text.secondary'>
-              {isCompleted
-                ? t('translation.translationCompleteDesc')
-                : isTranslating
-                  ? t('translation.translatingDesc', { completed, total })
-                  : hasFailedChunks
-                    ? t('translation.hasFailedChunksDesc', { failed })
-                    : t('translation.readyDesc')}
-            </Typography>
-          </Box>
-        </Box>
+          <Typography variant='subtitle2' fontWeight={600}>
+            {isCompleted
+              ? t('translation.translationComplete')
+              : isTranslating
+                ? t('translation.translatingDesc', { completed, total })
+                : hasFailedChunks
+                  ? t('translation.hasFailedChunks')
+                  : t('translation.ready')}
+          </Typography>
 
-        {/* 통계 칩들 */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <StatChip
-            label={t('translation.completed')}
-            value={completed}
-            color='success'
-            icon={<SuccessIcon sx={{ fontSize: 16 }} />}
-          />
-          {failed > 0 && (
+          {/* 통계 칩들 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <StatChip
-              label={t('translation.failed')}
-              value={failed}
-              color='error'
-              icon={<ErrorIcon sx={{ fontSize: 16 }} />}
+              label={t('translation.completed')}
+              value={completed}
+              color='success'
+              icon={<SuccessIcon sx={{ fontSize: 14 }} />}
             />
-          )}
-          {pending > 0 && (
-            <StatChip
-              label={t('translation.pending')}
-              value={pending}
-              color='info'
-              icon={<PendingIcon sx={{ fontSize: 16 }} />}
-            />
-          )}
+            {failed > 0 && (
+              <StatChip
+                label={t('translation.failed')}
+                value={failed}
+                color='error'
+                icon={<ErrorIcon sx={{ fontSize: 14 }} />}
+              />
+            )}
+            {pending > 0 && (
+              <StatChip
+                label={t('translation.pending')}
+                value={pending}
+                color='info'
+                icon={<PendingIcon sx={{ fontSize: 14 }} />}
+              />
+            )}
+          </Box>
         </Box>
 
         {/* 액션 버튼들 */}
@@ -257,37 +232,12 @@ export default function ResultTab({
           )}
 
           {canDownload && (
-            <Button variant='contained' color='success' startIcon={<DownloadIcon />} onClick={onDownload}>
+            <Button variant='contained' color='success' startIcon={<DownloadIcon />} onClick={onDownload} size='small'>
               {t('translation.downloadResult')}
             </Button>
           )}
         </Box>
       </Paper>
-
-      {/* 프로그레스 바 */}
-      <Box sx={{ px: 1 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant='caption' color='text.secondary'>
-            {t('translation.progress')}
-          </Typography>
-          <Typography variant='caption' fontWeight={600} color='primary.main'>
-            {percent}%
-          </Typography>
-        </Box>
-        <LinearProgress
-          variant='determinate'
-          value={percent}
-          sx={{
-            height: 6,
-            borderRadius: 3,
-            bgcolor: alpha(theme.palette.primary.main, 0.1),
-            '& .MuiLinearProgress-bar': {
-              borderRadius: 3,
-              background: theme.custom.gradient.progress,
-            },
-          }}
-        />
-      </Box>
 
       {/* 번역문 뷰어 */}
       <Paper
@@ -306,7 +256,8 @@ export default function ResultTab({
         {/* 뷰어 헤더 */}
         <Box
           sx={{
-            p: 1.5,
+            px: 1.5,
+            py: 0.75,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

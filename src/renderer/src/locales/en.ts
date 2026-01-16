@@ -232,7 +232,7 @@ export default {
 
       // Result Tab
       progress: 'Progress',
-      translationComplete: 'Translation Complete!',
+      translationComplete: 'Translation Complete',
       translationCompleteDesc: 'All chunks have been translated. Download the result.',
       translatingDesc: '{{completed}}/{{total}} chunks translated',
       hasFailedChunks: 'Some chunks failed',

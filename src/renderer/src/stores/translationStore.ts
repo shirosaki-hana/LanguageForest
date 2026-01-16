@@ -9,7 +9,6 @@ import type {
   UpdateTranslationConfigRequest,
   WsServerEvent,
   PromptTemplate,
-  TranslationChunkStatus,
   GeminiModelInfo,
 } from '@shared/types';
 import * as api from '../api/translation';
@@ -20,13 +19,6 @@ import { snackbar } from './snackbarStore';
 // 타입 정의
 // ============================================
 
-interface ChunkPagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
 interface TranslationState {
   // 세션 목록
   sessions: TranslationSession[];
@@ -36,13 +28,10 @@ interface TranslationState {
   currentSessionId: string | null;
   currentSession: TranslationSession | null;
   chunks: TranslationChunk[];
+  chunksLoading: boolean;
   sessionLoading: boolean;
 
-  // 청크 페이지네이션
-  chunkPagination: ChunkPagination | null;
-  chunkFilter: TranslationChunkStatus | null;
-
-  // 진행 상황 (WebSocket)
+  // 진행 상황
   progress: ProgressInfo | null;
   isTranslating: boolean;
   isPaused: boolean;
@@ -78,7 +67,7 @@ interface TranslationState {
   downloadTranslation: () => Promise<void>;
 
   // 청크 관리
-  loadChunks: (options?: { page?: number; status?: TranslationChunkStatus | null }) => Promise<void>;
+  loadChunks: () => Promise<void>;
   translateSingleChunk: (chunkId: string) => Promise<void>;
   retryChunk: (chunkId: string) => Promise<void>;
 
@@ -98,6 +87,20 @@ interface TranslationState {
   connectWs: () => void;
   disconnectWs: () => void;
   reset: () => void;
+}
+
+// ============================================
+// 헬퍼: progress 계산
+// ============================================
+
+function calculateProgress(chunks: TranslationChunk[]): ProgressInfo {
+  const total = chunks.length;
+  const completed = chunks.filter(c => c.status === 'completed').length;
+  const failed = chunks.filter(c => c.status === 'failed').length;
+  const pending = chunks.filter(c => c.status === 'pending' || c.status === 'processing').length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return { total, completed, failed, pending, percent };
 }
 
 // ============================================
@@ -121,32 +124,33 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
 
       case 'chunk:start':
         // 청크 시작 - UI에서 진행 중 표시
-        set(state => ({
-          chunks: state.chunks.map(c => (c.id === event.chunkId ? { ...c, status: 'processing' as const } : c)),
-        }));
+        set(state => {
+          const newChunks = state.chunks.map(c => (c.id === event.chunkId ? { ...c, status: 'processing' as const } : c));
+          return {
+            chunks: newChunks,
+            progress: calculateProgress(newChunks),
+          };
+        });
         break;
 
       case 'chunk:progress':
-        // 청크 완료/실패
-        set(state => ({
-          chunks: state.chunks.map(c => (c.id === event.chunk.id ? event.chunk : c)),
-          progress: event.progress,
-        }));
+        // 청크 완료/실패 - chunks 업데이트 및 progress 재계산
+        set(state => {
+          const newChunks = state.chunks.map(c => (c.id === event.chunk.id ? event.chunk : c));
+          return {
+            chunks: newChunks,
+            progress: calculateProgress(newChunks),
+          };
+        });
         break;
 
       case 'session:status':
-        set({
-          progress: event.progress,
+        set(state => ({
           isTranslating: event.status === 'translating',
           isPaused: event.status === 'paused',
-        });
-        // 세션 목록도 업데이트
-        if (state.currentSession) {
-          set(s => ({
-            currentSession: s.currentSession ? { ...s.currentSession, status: event.status } : null,
-            sessions: s.sessions.map(sess => (sess.id === event.sessionId ? { ...sess, status: event.status } : sess)),
-          }));
-        }
+          currentSession: state.currentSession ? { ...state.currentSession, status: event.status } : null,
+          sessions: state.sessions.map(sess => (sess.id === event.sessionId ? { ...sess, status: event.status } : sess)),
+        }));
         break;
 
       case 'session:complete':
@@ -172,9 +176,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
     currentSessionId: null,
     currentSession: null,
     chunks: [],
+    chunksLoading: false,
     sessionLoading: false,
-    chunkPagination: null,
-    chunkFilter: null,
     progress: null,
     isTranslating: false,
     isPaused: false,
@@ -229,8 +232,6 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
           currentSessionId: null,
           currentSession: null,
           chunks: [],
-          chunkPagination: null,
-          chunkFilter: null,
           progress: null,
           isTranslating: false,
           isPaused: false,
@@ -250,12 +251,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
           sessionLoading: false,
         });
 
-        // 청크가 있으면 페이지네이션으로 로드
-        if (session.totalChunks > 0) {
-          await get().loadChunks({ page: 1 });
-        } else {
-          set({ chunks: [], chunkPagination: null });
-        }
+        // 청크 로드 (totalChunks가 업데이트 안됐을 수 있으므로 항상 시도)
+        await get().loadChunks();
 
         // WebSocket 구독
         if (state.wsConnected) {
@@ -327,7 +324,7 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
         }));
 
         // 청크 로드
-        await get().loadChunks({ page: 1 });
+        await get().loadChunks();
 
         snackbar.success('translation.fileUploaded', true);
       } catch (error) {
@@ -367,35 +364,26 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
       }
     },
 
-    // 청크 로드 (페이지네이션)
-    loadChunks: async options => {
+    // 청크 로드 (전체)
+    loadChunks: async () => {
       const state = get();
       if (!state.currentSessionId) return;
 
-      const page = options?.page ?? state.chunkPagination?.page ?? 1;
-      const status = options?.status !== undefined ? options.status : state.chunkFilter;
+      set({ chunksLoading: true });
 
       try {
-        const result = await api.getSessionChunksPaginated(state.currentSessionId, {
-          page,
-          limit: 20,
-          status: status ?? undefined,
-        });
+        // 전체 청크 로드 (페이지네이션 없음)
+        const chunks = await api.getSessionChunks(state.currentSessionId);
+        const sortedChunks = [...chunks].sort((a, b) => a.order - b.order);
 
         set({
-          chunks: result.chunks,
-          chunkPagination: result.pagination,
-          chunkFilter: status,
-          progress: {
-            completed: result.chunks.filter(c => c.status === 'completed').length,
-            failed: result.chunks.filter(c => c.status === 'failed').length,
-            pending: result.chunks.filter(c => c.status === 'pending' || c.status === 'processing').length,
-            total: result.pagination.total,
-            percent: Math.round((result.chunks.filter(c => c.status === 'completed').length / result.pagination.total) * 100),
-          },
+          chunks: sortedChunks,
+          chunksLoading: false,
+          progress: calculateProgress(sortedChunks),
         });
       } catch {
         snackbar.error('translation.errors.loadChunksFailed', true);
+        set({ chunksLoading: false });
       }
     },
 
@@ -409,9 +397,13 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
 
       try {
         const chunk = await api.translateSingleChunk(chunkId, state.selectedTemplateId);
-        set(s => ({
-          chunks: s.chunks.map(c => (c.id === chunkId ? chunk : c)),
-        }));
+        set(state => {
+          const newChunks = state.chunks.map(c => (c.id === chunkId ? chunk : c));
+          return {
+            chunks: newChunks,
+            progress: calculateProgress(newChunks),
+          };
+        });
       } catch {
         snackbar.error('translation.errors.translateChunkFailed', true);
       }
@@ -475,9 +467,13 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
 
       try {
         const chunk = await api.retryChunk(chunkId, state.selectedTemplateId);
-        set(state => ({
-          chunks: state.chunks.map(c => (c.id === chunkId ? chunk : c)),
-        }));
+        set(state => {
+          const newChunks = state.chunks.map(c => (c.id === chunkId ? chunk : c));
+          return {
+            chunks: newChunks,
+            progress: calculateProgress(newChunks),
+          };
+        });
       } catch {
         snackbar.error('translation.errors.retryFailed', true);
       }
@@ -564,9 +560,8 @@ export const useTranslationStore = create<TranslationState>((set, get) => {
         currentSessionId: null,
         currentSession: null,
         chunks: [],
+        chunksLoading: false,
         sessionLoading: false,
-        chunkPagination: null,
-        chunkFilter: null,
         progress: null,
         isTranslating: false,
         isPaused: false,

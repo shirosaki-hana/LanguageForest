@@ -163,12 +163,12 @@ export default function SourceEditorTab({
   const canStartChunking = charCount > 0 && !isChunking && !disabled;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1 }}>
       {/* 툴바 */}
       <Paper
         elevation={0}
         sx={{
-          p: 1.5,
+          p: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -231,7 +231,7 @@ export default function SourceEditorTab({
             startIcon={isChunking ? <CircularProgress size={16} color='inherit' /> : <ChunkIcon />}
             onClick={onStartChunking}
             disabled={!canStartChunking}
-            size='medium'
+            size='small'
           >
             {isChunking ? t('translation.chunking') : t('translation.startChunking')}
           </Button>

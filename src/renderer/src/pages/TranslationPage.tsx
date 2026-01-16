@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Box, Typography, Paper, IconButton, useMediaQuery, useTheme, Tabs, Tab } from '@mui/material';
 import {
@@ -14,7 +14,7 @@ import { useTranslationStore } from '../stores/translationStore';
 import { useSettingsStore, type TranslationSettingsProps } from '../stores/settingsStore';
 import { dialog } from '../stores/dialogStore';
 import { SessionSidebar, SessionDialog, SourceEditorTab, ChunksTab, ResultTab } from '../components/translation';
-import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest } from '@shared/types';
+import type { TranslationSession, CreateSessionRequest, UpdateSessionRequest, TranslationChunkStatus } from '@shared/types';
 import * as api from '../api/translation';
 import { snackbar } from '../stores/snackbarStore';
 
@@ -42,8 +42,6 @@ export default function TranslationPage() {
     currentSessionId,
     currentSession,
     chunks,
-    chunkPagination,
-    chunkFilter,
     progress,
     isTranslating,
     isPaused,
@@ -86,6 +84,9 @@ export default function TranslationPage() {
   const [sourceText, setSourceText] = useState('');
   const [isChunking, setIsChunking] = useState(false);
 
+  // 청크 필터 상태 (클라이언트 사이드)
+  const [chunkFilter, setChunkFilter] = useState<TranslationChunkStatus | null>(null);
+
   // 화면 크기 변경 시 사이드바 상태 조정
   if (isMobile !== prevIsMobile) {
     setPrevIsMobile(isMobile);
@@ -110,6 +111,8 @@ export default function TranslationPage() {
     if (currentSession) {
       // sourceText 초기화
       setSourceText(currentSession.sourceText || '');
+      // 필터 초기화
+      setChunkFilter(null);
 
       // 탭 자동 전환: 청크가 있으면 청크 탭으로, 없으면 소스 탭으로
       if (currentSession.totalChunks > 0) {
@@ -119,6 +122,7 @@ export default function TranslationPage() {
       }
     } else {
       setSourceText('');
+      setChunkFilter(null);
       setActiveTab('source');
     }
   }, [currentSession?.id]);
@@ -209,11 +213,10 @@ export default function TranslationPage() {
       // API 호출: 소스 텍스트로 청킹 시작
       await api.startTranslation(currentSessionId, sourceText);
 
-      // 세션 다시 로드
+      // 세션과 청크 다시 로드
       await selectSession(currentSessionId);
-
-      // 청크 로드
-      await loadChunks({ page: 1 });
+      // 명시적으로 청크 로드 (세션의 totalChunks가 업데이트 되지 않았을 수 있음)
+      await loadChunks();
 
       // 청크 탭으로 전환
       setActiveTab('chunks');
@@ -226,21 +229,10 @@ export default function TranslationPage() {
     }
   }, [currentSessionId, sourceText, selectSession, loadChunks]);
 
-  // 청크 페이지 변경
-  const handlePageChange = useCallback(
-    (page: number) => {
-      loadChunks({ page });
-    },
-    [loadChunks]
-  );
-
-  // 청크 필터 변경
-  const handleFilterChange = useCallback(
-    (status: import('@shared/types').TranslationChunkStatus | null) => {
-      loadChunks({ page: 1, status });
-    },
-    [loadChunks]
-  );
+  // 청크 필터 변경 (클라이언트 사이드)
+  const handleFilterChange = useCallback((status: TranslationChunkStatus | null) => {
+    setChunkFilter(status);
+  }, []);
 
   // 실패 청크 모두 재시도
   const handleRetryFailed = useCallback(() => {
@@ -274,15 +266,24 @@ export default function TranslationPage() {
   }, []);
 
   // 파생 상태
-  const hasChunks = (currentSession?.totalChunks ?? 0) > 0;
+  const hasChunks = chunks.length > 0 || (currentSession?.totalChunks ?? 0) > 0;
   const hasCompletedChunks = chunks.some(c => c.status === 'completed');
   const hasFailedChunks = chunks.some(c => c.status === 'failed');
 
-  // 번역된 텍스트 합치기 (order 기준 정렬)
-  const translatedText = [...chunks]
-    .sort((a, b) => a.order - b.order)
-    .map(c => c.translatedText || '')
-    .join('\n\n');
+  // 필터링된 청크 (클라이언트 사이드)
+  const filteredChunks = useMemo(() => {
+    if (!chunkFilter) return chunks;
+    return chunks.filter(c => c.status === chunkFilter);
+  }, [chunks, chunkFilter]);
+
+  // 번역된 텍스트 (청크에서 직접 계산)
+  const translatedText = useMemo(() => {
+    return chunks
+      .filter(c => c.status === 'completed' && c.translatedText)
+      .sort((a, b) => a.order - b.order)
+      .map(c => c.translatedText)
+      .join('\n\n');
+  }, [chunks]);
 
   // 탭 활성화 상태
   const isSourceTabEnabled = Boolean(currentSession);
@@ -323,15 +324,15 @@ export default function TranslationPage() {
         <Paper
           elevation={0}
           sx={{
-            px: 2,
-            py: 1.5,
+            px: 1.5,
+            py: 1,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: 1,
             borderColor: 'divider',
             borderRadius: 0,
-            minHeight: 56,
+            minHeight: 48,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -446,7 +447,7 @@ export default function TranslationPage() {
               sx={{
                 flex: 1,
                 overflow: 'hidden',
-                p: 2,
+                p: 1.5,
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
@@ -468,8 +469,8 @@ export default function TranslationPage() {
               {/* 청크 탭 */}
               {activeTab === 'chunks' && (
                 <ChunksTab
-                  chunks={chunks}
-                  pagination={chunkPagination}
+                  chunks={filteredChunks}
+                  totalChunks={chunks.length}
                   progress={progress}
                   filter={chunkFilter}
                   templates={templates}
@@ -478,7 +479,6 @@ export default function TranslationPage() {
                   isTranslating={isTranslating}
                   isPaused={isPaused}
                   hasFailedChunks={hasFailedChunks}
-                  onPageChange={handlePageChange}
                   onFilterChange={handleFilterChange}
                   onRetryChunk={retryChunk}
                   onTranslateChunk={translateSingleChunk}

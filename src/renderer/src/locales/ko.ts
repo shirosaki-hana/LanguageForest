@@ -232,7 +232,7 @@ export default {
 
       // Result Tab
       progress: '진행률',
-      translationComplete: '번역 완료!',
+      translationComplete: '번역 완료',
       translationCompleteDesc: '모든 청크의 번역이 완료되었습니다. 결과를 다운로드하세요.',
       translatingDesc: '{{completed}}/{{total}} 청크 번역 완료',
       hasFailedChunks: '실패한 청크가 있습니다',

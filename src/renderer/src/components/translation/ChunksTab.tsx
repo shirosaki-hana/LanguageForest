@@ -5,7 +5,6 @@ import {
   FormControl,
   Select,
   MenuItem,
-  InputLabel,
   CircularProgress,
   Paper,
   Typography,
@@ -27,12 +26,7 @@ import type { TranslationChunk, TranslationChunkStatus, PromptTemplate, Progress
 interface ChunksTabProps {
   // 청크 데이터
   chunks: TranslationChunk[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  } | null;
+  totalChunks: number;
   progress: ProgressInfo | null;
   filter: TranslationChunkStatus | null;
 
@@ -47,7 +41,6 @@ interface ChunksTabProps {
   hasFailedChunks: boolean;
 
   // 액션
-  onPageChange: (page: number) => void;
   onFilterChange: (status: TranslationChunkStatus | null) => void;
   onRetryChunk: (chunkId: string) => void;
   onTranslateChunk: (chunkId: string) => void;
@@ -64,7 +57,7 @@ interface ChunksTabProps {
 
 export default function ChunksTab({
   chunks,
-  pagination,
+  totalChunks,
   progress,
   filter,
   templates,
@@ -73,7 +66,6 @@ export default function ChunksTab({
   isTranslating,
   isPaused,
   hasFailedChunks,
-  onPageChange,
   onFilterChange,
   onRetryChunk,
   onTranslateChunk,
@@ -87,17 +79,17 @@ export default function ChunksTab({
   const theme = useTheme();
 
   // 상태 계산
-  const canStart = !isTranslating && !isPaused && selectedTemplateId && chunks.length > 0;
+  const canStart = !isTranslating && !isPaused && selectedTemplateId && totalChunks > 0;
   const canPause = isTranslating && !isPaused;
   const canResume = isPaused && selectedTemplateId;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1 }}>
       {/* 툴바 */}
       <Paper
         elevation={0}
         sx={{
-          p: 1.5,
+          p: 1,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -122,16 +114,24 @@ export default function ChunksTab({
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           {/* 템플릿 선택 */}
-          <FormControl size='small' sx={{ minWidth: 200 }} disabled={isTranslating}>
-            <InputLabel id='template-select-label'>{t('translation.template')}</InputLabel>
+          <FormControl size='small' sx={{ minWidth: 180 }} disabled={isTranslating}>
             <Select
-              labelId='template-select-label'
               value={selectedTemplateId || ''}
-              label={t('translation.template')}
               onChange={e => onSelectTemplate(e.target.value)}
+              displayEmpty
+              sx={{
+                height: 32,
+                fontSize: '0.875rem',
+                '& .MuiSelect-select': {
+                  py: 0.75,
+                },
+              }}
             >
+              <MenuItem value='' disabled>
+                {t('translation.template')}
+              </MenuItem>
               {templates.map(template => (
-                <MenuItem key={template.id} value={template.id}>
+                <MenuItem key={template.id} value={template.id} sx={{ fontSize: '0.875rem' }}>
                   {template.title} ({template.sourceLanguage} → {template.targetLanguage})
                 </MenuItem>
               ))}
@@ -147,21 +147,21 @@ export default function ChunksTab({
 
           {/* 시작 버튼 */}
           {canStart && (
-            <Button variant='contained' color='primary' startIcon={<StartIcon />} onClick={onStart}>
+            <Button variant='contained' color='primary' startIcon={<StartIcon />} onClick={onStart} size='small'>
               {t('translation.startTranslation')}
             </Button>
           )}
 
           {/* 일시정지 버튼 */}
           {canPause && (
-            <Button variant='contained' color='warning' startIcon={<PauseIcon />} onClick={onPause}>
+            <Button variant='contained' color='warning' startIcon={<PauseIcon />} onClick={onPause} size='small'>
               {t('translation.pause')}
             </Button>
           )}
 
           {/* 재개 버튼 */}
           {canResume && (
-            <Button variant='contained' color='success' startIcon={<StartIcon />} onClick={onResume}>
+            <Button variant='contained' color='success' startIcon={<StartIcon />} onClick={onResume} size='small'>
               {t('translation.resume')}
             </Button>
           )}
@@ -182,11 +182,10 @@ export default function ChunksTab({
       <Box sx={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <ChunkListView
           chunks={chunks}
-          pagination={pagination}
+          totalChunks={totalChunks}
           progress={progress}
           filter={filter}
           isTranslating={isTranslating}
-          onPageChange={onPageChange}
           onFilterChange={onFilterChange}
           onRetryChunk={onRetryChunk}
           onTranslateChunk={onTranslateChunk}
