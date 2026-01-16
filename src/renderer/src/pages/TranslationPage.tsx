@@ -76,13 +76,14 @@ export default function TranslationPage() {
   useEffect(() => {
     loadSessions();
     loadConfig();
+    loadModels();
     loadTemplates();
     connectWs();
 
     return () => {
       disconnectWs();
     };
-  }, [loadSessions, loadConfig, loadTemplates, connectWs, disconnectWs]);
+  }, [loadSessions, loadConfig, loadModels, loadTemplates, connectWs, disconnectWs]);
 
   // 사이드바 토글
   const handleToggleSidebar = useCallback(() => {
