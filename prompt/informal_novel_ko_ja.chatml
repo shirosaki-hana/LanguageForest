@@ -54,7 +54,7 @@ description: 한국어 소설을 비격식체 일본어로 번역 (だ/である
 # -------------------------------------------------------------------------------------------------------------------------------------------
 <|im_start|>USER
 <Platform Message>
-# Common Expression Dictionary
+Common Expression Dictionary:
 - "그러니까" → "だから", "つまり"
 - "대박" → "やばい", "すげえ"
 - "진짜" → "マジで", "ほんとに"
@@ -120,4 +120,3 @@ Response Format:
 <|im_start|>MODEL
 <!-- Start of translation -->
 <|im_end|>
-
