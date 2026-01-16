@@ -14,7 +14,7 @@ export default defineConfig({
       },
     },
     build: {
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 3000,
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/main/index.ts'),
@@ -30,7 +30,7 @@ export default defineConfig({
       },
     },
     build: {
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 3000,
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/preload/index.ts'),
@@ -47,7 +47,7 @@ export default defineConfig({
     },
     plugins: [react()],
     build: {
-      chunkSizeWarningLimit: 2000,
+      chunkSizeWarningLimit: 3000,
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'src/renderer/index.html'),
