@@ -188,9 +188,7 @@ export interface BuildContextInput {
 export function buildTranslationContext(input: BuildContextInput): TranslationContext {
   const { session, currentChunk, allChunks } = input;
 
-  const previousChunk = allChunks.find(
-    c => c.order === currentChunk.order - 1 && c.status === 'completed' && c.translatedText !== null
-  );
+  const previousChunk = allChunks.find(c => c.order === currentChunk.order - 1 && c.status === 'completed' && c.translatedText !== null);
 
   return {
     session: {

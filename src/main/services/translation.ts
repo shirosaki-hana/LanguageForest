@@ -201,12 +201,7 @@ export async function deleteSession(sessionId: string): Promise<void> {
 }
 
 export async function getSessionChunks(sessionId: string): Promise<TranslationChunk[]> {
-  return await db
-    .selectFrom('translation_chunks')
-    .selectAll()
-    .where('sessionId', '=', sessionId)
-    .orderBy('order', 'asc')
-    .execute();
+  return await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).orderBy('order', 'asc').execute();
 }
 
 export interface PaginatedChunksResult {
@@ -282,11 +277,7 @@ export async function uploadFileAndChunk(input: FileUploadInput): Promise<FileUp
   const now = nowISOString();
 
   const session = await db.transaction().execute(async trx => {
-    const existingSession = await trx
-      .selectFrom('translation_sessions')
-      .selectAll()
-      .where('id', '=', sessionId)
-      .executeTakeFirst();
+    const existingSession = await trx.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
     if (!existingSession) {
       throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -339,11 +330,7 @@ export async function uploadFileAndChunk(input: FileUploadInput): Promise<FileUp
 }
 
 export async function getTranslationForDownload(sessionId: string): Promise<{ content: string; fileName: string }> {
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -362,9 +349,7 @@ export async function getTranslationForDownload(sessionId: string): Promise<{ co
   const originalName = session.originalFileName || session.title;
   const lastDot = originalName.lastIndexOf('.');
   const fileName =
-    lastDot > 0
-      ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}`
-      : `${originalName}_translated.txt`;
+    lastDot > 0 ? `${originalName.slice(0, lastDot)}_translated${originalName.slice(lastDot)}` : `${originalName}_translated.txt`;
 
   return { content, fileName };
 }
@@ -386,11 +371,7 @@ export async function startTranslation(input: StartTranslationInput): Promise<Tr
   const now = nowISOString();
 
   await db.transaction().execute(async trx => {
-    const session = await trx
-      .selectFrom('translation_sessions')
-      .selectAll()
-      .where('id', '=', sessionId)
-      .executeTakeFirst();
+    const session = await trx.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
     if (!session) {
       throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -433,11 +414,7 @@ export async function startTranslation(input: StartTranslationInput): Promise<Tr
 }
 
 export async function getTranslationProgress(sessionId: string): Promise<TranslationProgress> {
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -478,11 +455,7 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
 
   emitChunkStart(session.id, chunk.id, chunk.order);
 
-  await db
-    .updateTable('translation_chunks')
-    .set({ status: 'processing', updatedAt: now })
-    .where('id', '=', chunk.id)
-    .execute();
+  await db.updateTable('translation_chunks').set({ status: 'processing', updatedAt: now }).where('id', '=', chunk.id).execute();
 
   try {
     const chunkInfos: ChunkInfo[] = allChunks.map(c => ({
@@ -571,21 +544,14 @@ async function translateSingleChunk(input: TranslateSingleChunkInput): Promise<C
   }
 }
 
-export async function translateChunk(
-  chunkId: string,
-  options: { templateId: string; customDict?: string }
-): Promise<TranslationChunk> {
+export async function translateChunk(chunkId: string, options: { templateId: string; customDict?: string }): Promise<TranslationChunk> {
   const chunk = await db.selectFrom('translation_chunks').selectAll().where('id', '=', chunkId).executeTakeFirst();
 
   if (!chunk) {
     throw Object.assign(new Error('Chunk not found'), { statusCode: 404 });
   }
 
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', chunk.sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', chunk.sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -627,15 +593,8 @@ export async function translateChunk(
   return updatedChunk;
 }
 
-export async function translateAllPendingChunks(
-  sessionId: string,
-  options: { templateId: string }
-): Promise<ChunkResult[]> {
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+export async function translateAllPendingChunks(sessionId: string, options: { templateId: string }): Promise<ChunkResult[]> {
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -678,11 +637,7 @@ export async function translateAllPendingChunks(
   const mutableChunks = [...allChunks];
 
   for (const chunk of pendingChunks) {
-    const currentSession = await db
-      .selectFrom('translation_sessions')
-      .select('status')
-      .where('id', '=', sessionId)
-      .executeTakeFirst();
+    const currentSession = await db.selectFrom('translation_sessions').select('status').where('id', '=', sessionId).executeTakeFirst();
 
     if (currentSession?.status === 'paused') {
       break;
@@ -708,11 +663,7 @@ export async function translateAllPendingChunks(
     }
   }
 
-  const finalSession = await db
-    .selectFrom('translation_sessions')
-    .select('status')
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+  const finalSession = await db.selectFrom('translation_sessions').select('status').where('id', '=', sessionId).executeTakeFirst();
 
   if (finalSession?.status !== 'paused') {
     const hasFailures = results.some(r => r.status === 'failed');
@@ -737,11 +688,7 @@ export async function translateAllPendingChunks(
 
     if (finalStatus === 'completed') {
       await assembleTranslation(sessionId);
-      const completedSession = await db
-        .selectFrom('translation_sessions')
-        .selectAll()
-        .where('id', '=', sessionId)
-        .executeTakeFirst();
+      const completedSession = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
       if (completedSession) {
         emitSessionComplete(sessionId, completedSession);
       }
@@ -756,11 +703,7 @@ export async function translateAllPendingChunks(
 // ============================================
 
 export async function pauseTranslation(sessionId: string): Promise<TranslationSession> {
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -785,11 +728,7 @@ export async function pauseTranslation(sessionId: string): Promise<TranslationSe
 }
 
 export async function resumeTranslation(sessionId: string, options: { templateId: string }): Promise<void> {
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', sessionId).executeTakeFirst();
 
   if (!session) {
     throw Object.assign(new Error('Session not found'), { statusCode: 404 });
@@ -804,10 +743,7 @@ export async function resumeTranslation(sessionId: string, options: { templateId
   });
 }
 
-export async function retryFailedChunk(
-  chunkId: string,
-  options: { templateId: string }
-): Promise<TranslationChunk> {
+export async function retryFailedChunk(chunkId: string, options: { templateId: string }): Promise<TranslationChunk> {
   const chunk = await db.selectFrom('translation_chunks').selectAll().where('id', '=', chunkId).executeTakeFirst();
 
   if (!chunk) {
@@ -818,17 +754,9 @@ export async function retryFailedChunk(
     throw Object.assign(new Error('Chunk is not in failed state'), { statusCode: 400 });
   }
 
-  const session = await db
-    .selectFrom('translation_sessions')
-    .selectAll()
-    .where('id', '=', chunk.sessionId)
-    .executeTakeFirst();
+  const session = await db.selectFrom('translation_sessions').selectAll().where('id', '=', chunk.sessionId).executeTakeFirst();
 
-  await db
-    .updateTable('translation_chunks')
-    .set({ status: 'pending', updatedAt: nowISOString() })
-    .where('id', '=', chunkId)
-    .execute();
+  await db.updateTable('translation_chunks').set({ status: 'pending', updatedAt: nowISOString() }).where('id', '=', chunkId).execute();
 
   return translateChunk(chunkId, {
     templateId: options.templateId,
@@ -841,12 +769,7 @@ export async function retryFailedChunk(
 // ============================================
 
 async function assembleTranslation(sessionId: string): Promise<void> {
-  const chunks = await db
-    .selectFrom('translation_chunks')
-    .selectAll()
-    .where('sessionId', '=', sessionId)
-    .orderBy('order', 'asc')
-    .execute();
+  const chunks = await db.selectFrom('translation_chunks').selectAll().where('sessionId', '=', sessionId).orderBy('order', 'asc').execute();
 
   const allCompleted = chunks.every(c => c.status === 'completed');
 
@@ -882,7 +805,9 @@ export async function getPartialTranslation(sessionId: string): Promise<string> 
 // ============================================
 
 function maskApiKey(apiKey: string | null): string | null {
-  if (!apiKey || apiKey.length < 12) return null;
+  if (!apiKey || apiKey.length < 12) {
+    return null;
+  }
   return `${apiKey.slice(0, 4)}${'*'.repeat(Math.min(apiKey.length - 8, 20))}${apiKey.slice(-4)}`;
 }
 

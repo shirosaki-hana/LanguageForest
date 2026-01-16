@@ -177,12 +177,9 @@ export async function registerIpcHandlers(): Promise<void> {
     return getSessionChunks(id);
   });
 
-  ipcMain.handle(
-    'sessions:get-chunks-paginated',
-    async (_event, id: string, options: { page: number; limit: number; status?: string }) => {
-      return getSessionChunksPaginated(id, options);
-    }
-  );
+  ipcMain.handle('sessions:get-chunks-paginated', async (_event, id: string, options: { page: number; limit: number; status?: string }) => {
+    return getSessionChunksPaginated(id, options);
+  });
 
   ipcMain.handle('sessions:upload-file', async (_event, sessionId: string, fileName: string, content: string) => {
     return uploadFileAndChunk({

@@ -8,8 +8,8 @@
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "rimraf out && electron-vite build",
-    "start": "rimraf out && rimraf dist && electron-vite preview",
+    "build": "pnpm typecheck && rimraf out && electron-vite build",
+    "start": "pnpm typecheck && rimraf out && rimraf dist && electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "pnpm build && electron-builder --dir",
     "build:win": "pnpm build && electron-builder --win",

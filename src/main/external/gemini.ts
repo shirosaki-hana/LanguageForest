@@ -146,11 +146,7 @@ export class GeminiClient {
 
   constructor(config: GeminiClientConfig = {}) {
     if (!config.apiKey) {
-      throw new GeminiAPIError(
-        'API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.',
-        401,
-        'API_KEY_NOT_SET'
-      );
+      throw new GeminiAPIError('API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.', 401, 'API_KEY_NOT_SET');
     }
     this.apiKey = config.apiKey;
     this.model = config.model ?? DEFAULT_MODEL;
@@ -394,11 +390,7 @@ export async function getGeminiClientAsync(config?: GeminiClientConfig): Promise
     const apiKey = config?.apiKey ?? dbApiKey;
 
     if (!apiKey) {
-      throw new GeminiAPIError(
-        'API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.',
-        401,
-        'API_KEY_NOT_SET'
-      );
+      throw new GeminiAPIError('API 키가 설정되지 않았습니다. 설정에서 Gemini API 키를 입력해주세요.', 401, 'API_KEY_NOT_SET');
     }
 
     defaultClient = new GeminiClient({ ...config, apiKey });

@@ -43,10 +43,7 @@ export function parseFrontMatter(content: string): FrontMatterResult {
   // 첫 줄이 반드시 '---'여야 함
   // ============================================
   if (lines.length === 0 || lines[0].trim() !== DELIMITER) {
-    throw new FrontMatterError(
-      'missing_opening_delimiter',
-      `Front Matter must start with '${DELIMITER}'`,
-    );
+    throw new FrontMatterError('missing_opening_delimiter', `Front Matter must start with '${DELIMITER}'`);
   }
 
   // ============================================
@@ -63,10 +60,7 @@ export function parseFrontMatter(content: string): FrontMatterResult {
   }
 
   if (closingIndex === -1) {
-    throw new FrontMatterError(
-      'missing_closing_delimiter',
-      `Front Matter must end with '${DELIMITER}'`,
-    );
+    throw new FrontMatterError('missing_closing_delimiter', `Front Matter must end with '${DELIMITER}'`);
   }
 
   // ============================================
@@ -88,7 +82,7 @@ export function parseFrontMatter(content: string): FrontMatterResult {
 export class FrontMatterError extends Error {
   constructor(
     public readonly code: 'missing_opening_delimiter' | 'missing_closing_delimiter',
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = 'FrontMatterError';

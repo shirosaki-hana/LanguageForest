@@ -87,6 +87,7 @@ The application requires a Google Gemini API key to function. You can set it in 
 ### Prompt Templates
 
 Translation prompt templates are stored in the `prompt/` directory as `.chatml` files. Each template includes:
+
 - Frontmatter with metadata (title, source/target language)
 - ChatML-formatted prompt content with Handlebars templating
 

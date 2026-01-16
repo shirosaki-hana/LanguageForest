@@ -4,13 +4,7 @@ import type { LogLevel, LogCategory, GetLogsRequest, LogSettings } from '@shared
 
 //------------------------------------------------------------------------------//
 // 로그 DB 저장 함수
-const saveLogToDb = async (
-  level: LogLevel,
-  category: LogCategory,
-  message: string,
-  meta?: unknown,
-  timestamp?: string
-): Promise<void> => {
+const saveLogToDb = async (level: LogLevel, category: LogCategory, message: string, meta?: unknown, timestamp?: string): Promise<void> => {
   await db
     .insertInto('logs')
     .values({
@@ -33,7 +27,7 @@ export const initializeLogger = async (): Promise<void> => {
 
 //------------------------------------------------------------------------------//
 // 로그 조회
-export const getLogs = async (params: GetLogsRequest) => {
+export const getLogs = async (params: Partial<GetLogsRequest> = {}) => {
   const { level, levels, category, categories, search, startDate, endDate, page = 1, limit = 50, sortOrder = 'desc' } = params;
 
   let query = db.selectFrom('logs');
@@ -109,7 +103,10 @@ export const getLogStats = async () => {
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const totalResult = await db.selectFrom('logs').select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow();
+  const totalResult = await db
+    .selectFrom('logs')
+    .select(eb => eb.fn.countAll().as('count'))
+    .executeTakeFirstOrThrow();
   const total = Number(totalResult.count);
 
   const byLevelResults = await db
@@ -204,7 +201,10 @@ export const cleanupOldLogs = async (settings: LogSettings): Promise<number> => 
   const byDateResult = await db.deleteFrom('logs').where('createdAt', '<', cutoffDate.toISOString()).executeTakeFirst();
   deletedCount += Number(byDateResult?.numDeletedRows ?? 0);
 
-  const countResult = await db.selectFrom('logs').select(eb => eb.fn.countAll().as('count')).executeTakeFirstOrThrow();
+  const countResult = await db
+    .selectFrom('logs')
+    .select(eb => eb.fn.countAll().as('count'))
+    .executeTakeFirstOrThrow();
   const currentCount = Number(countResult.count);
 
   if (currentCount > maxLogs) {

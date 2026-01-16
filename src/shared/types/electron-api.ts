@@ -28,6 +28,52 @@ import type {
   ProgressInfo,
 } from './index';
 
+// Dialog 타입 정의 (Electron 네임스페이스 대신 직접 정의)
+export interface FileFilter {
+  name: string;
+  extensions: string[];
+}
+
+export interface OpenDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  filters?: FileFilter[];
+  properties?: Array<
+    | 'openFile'
+    | 'openDirectory'
+    | 'multiSelections'
+    | 'showHiddenFiles'
+    | 'createDirectory'
+    | 'promptToCreate'
+    | 'noResolveAliases'
+    | 'treatPackageAsDirectory'
+    | 'dontAddToRecent'
+  >;
+  message?: string;
+}
+
+export interface OpenDialogReturnValue {
+  canceled: boolean;
+  filePaths: string[];
+}
+
+export interface SaveDialogOptions {
+  title?: string;
+  defaultPath?: string;
+  buttonLabel?: string;
+  filters?: FileFilter[];
+  message?: string;
+  nameFieldLabel?: string;
+  showsTagField?: boolean;
+  properties?: Array<'showHiddenFiles' | 'createDirectory' | 'treatPackageAsDirectory' | 'showOverwriteConfirmation' | 'dontAddToRecent'>;
+}
+
+export interface SaveDialogReturnValue {
+  canceled: boolean;
+  filePath?: string;
+}
+
 export interface ElectronAPI {
   // Settings
   settings: {
@@ -67,10 +113,7 @@ export interface ElectronAPI {
     update: (id: string, data: UpdateSessionRequest) => Promise<TranslationSession>;
     delete: (id: string) => Promise<void>;
     getChunks: (id: string) => Promise<TranslationChunk[]>;
-    getChunksPaginated: (
-      id: string,
-      options: { page: number; limit: number; status?: string }
-    ) => Promise<PaginatedChunksResponse>;
+    getChunksPaginated: (id: string, options: { page: number; limit: number; status?: string }) => Promise<PaginatedChunksResponse>;
     uploadFile: (id: string, fileName: string, content: string) => Promise<FileUploadResponse>;
     downloadTranslation: (id: string) => Promise<{ fileName: string; content: string }>;
   };
@@ -104,8 +147,8 @@ export interface ElectronAPI {
 
   // Dialog helpers
   dialog: {
-    showOpenDialog: (options: Electron.OpenDialogOptions) => Promise<Electron.OpenDialogReturnValue>;
-    showSaveDialog: (options: Electron.SaveDialogOptions) => Promise<Electron.SaveDialogReturnValue>;
+    showOpenDialog: (options: OpenDialogOptions) => Promise<OpenDialogReturnValue>;
+    showSaveDialog: (options: SaveDialogOptions) => Promise<SaveDialogReturnValue>;
   };
 }
 

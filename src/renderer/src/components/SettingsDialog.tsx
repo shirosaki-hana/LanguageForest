@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -106,14 +106,7 @@ export default function SettingsDialog() {
     }
   }, [isOpen, initialTab]);
 
-  // API 키 설정 로드
-  useEffect(() => {
-    if (isOpen) {
-      loadApiKeySettings();
-    }
-  }, [isOpen]);
-
-  const loadApiKeySettings = async () => {
+  const loadApiKeySettings = useCallback(async () => {
     setApiKeyLoading(true);
     try {
       const settings = await getAppSettings();
@@ -127,7 +120,14 @@ export default function SettingsDialog() {
     } finally {
       setApiKeyLoading(false);
     }
-  };
+  }, [t]);
+
+  // API 키 설정 로드
+  useEffect(() => {
+    if (isOpen) {
+      loadApiKeySettings();
+    }
+  }, [isOpen, loadApiKeySettings]);
 
   const handleSaveApiKey = async () => {
     if (!apiKey.trim()) return;
@@ -403,23 +403,12 @@ export default function SettingsDialog() {
 
                   {/* 버튼들 */}
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      variant='contained'
-                      onClick={handleSaveApiKey}
-                      disabled={!apiKey.trim() || apiKeySaving}
-                      size='small'
-                    >
+                    <Button variant='contained' onClick={handleSaveApiKey} disabled={!apiKey.trim() || apiKeySaving} size='small'>
                       {apiKeySaving ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
                       {hasApiKey ? t('settings.apiKey.update') : t('settings.apiKey.save')}
                     </Button>
                     {hasApiKey && (
-                      <Button
-                        variant='outlined'
-                        color='error'
-                        onClick={handleDeleteApiKey}
-                        disabled={apiKeySaving}
-                        size='small'
-                      >
+                      <Button variant='outlined' color='error' onClick={handleDeleteApiKey} disabled={apiKeySaving} size='small'>
                         {t('settings.apiKey.delete')}
                       </Button>
                     )}
@@ -428,12 +417,7 @@ export default function SettingsDialog() {
                   {/* API 키 발급 링크 */}
                   <Typography variant='caption' color='text.secondary' sx={{ display: 'block', mt: 2 }}>
                     {t('settings.apiKey.getKeyHint')}{' '}
-                    <a
-                      href='https://aistudio.google.com/app/apikey'
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      style={{ color: 'inherit' }}
-                    >
+                    <a href='https://aistudio.google.com/app/apikey' target='_blank' rel='noopener noreferrer' style={{ color: 'inherit' }}>
                       Google AI Studio
                     </a>
                   </Typography>

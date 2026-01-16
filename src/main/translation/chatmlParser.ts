@@ -167,9 +167,7 @@ export class ChatMLParser {
           if (trimmedLine.startsWith('#')) {
             continue;
           }
-          result.errors.push(
-            `Unexpected text outside of message block at line ${i + 1}: '${trimmedLine}'. Prepend '#' to mark comments.`
-          );
+          result.errors.push(`Unexpected text outside of message block at line ${i + 1}: '${trimmedLine}'. Prepend '#' to mark comments.`);
         }
       }
 

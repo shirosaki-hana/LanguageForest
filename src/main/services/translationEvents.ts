@@ -83,11 +83,7 @@ export function emitChunkProgress(sessionId: string, chunk: TranslationChunk, al
 /**
  * 세션 상태 변경 이벤트
  */
-export function emitSessionStatus(
-  sessionId: string,
-  status: TranslationSessionStatus,
-  chunks: TranslationChunk[]
-): void {
+export function emitSessionStatus(sessionId: string, status: TranslationSessionStatus, chunks: TranslationChunk[]): void {
   const progress = calculateProgress(chunks);
 
   const event: WsSessionStatusEvent = {

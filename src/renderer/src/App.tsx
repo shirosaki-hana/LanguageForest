@@ -11,11 +11,11 @@ function App() {
     <HashRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/logs" element={<LogsPage />} />
-          <Route path="/translation" element={<TranslationPage />} />
-          <Route path="/" element={<Navigate to="/translation" replace />} />
+          <Route path='/logs' element={<LogsPage />} />
+          <Route path='/translation' element={<TranslationPage />} />
+          <Route path='/' element={<Navigate to='/translation' replace />} />
         </Route>
-        <Route path="*" element={<Navigate to="/translation" replace />} />
+        <Route path='*' element={<Navigate to='/translation' replace />} />
       </Routes>
       <GlobalDialog />
       <GlobalSnackbar />

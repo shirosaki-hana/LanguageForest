@@ -73,12 +73,8 @@ const MIGRATIONS: MigrationDefinition[] = [
         )
       `.execute(db);
 
-      await sql`CREATE INDEX IF NOT EXISTS "translation_sessions_status_idx" ON "translation_sessions"("status")`.execute(
-        db
-      );
-      await sql`CREATE INDEX IF NOT EXISTS "translation_sessions_createdAt_idx" ON "translation_sessions"("createdAt")`.execute(
-        db
-      );
+      await sql`CREATE INDEX IF NOT EXISTS "translation_sessions_status_idx" ON "translation_sessions"("status")`.execute(db);
+      await sql`CREATE INDEX IF NOT EXISTS "translation_sessions_createdAt_idx" ON "translation_sessions"("createdAt")`.execute(db);
 
       // translation_chunks 테이블
       await sql`
@@ -99,12 +95,8 @@ const MIGRATIONS: MigrationDefinition[] = [
         )
       `.execute(db);
 
-      await sql`CREATE INDEX IF NOT EXISTS "translation_chunks_sessionId_idx" ON "translation_chunks"("sessionId")`.execute(
-        db
-      );
-      await sql`CREATE INDEX IF NOT EXISTS "translation_chunks_status_idx" ON "translation_chunks"("status")`.execute(
-        db
-      );
+      await sql`CREATE INDEX IF NOT EXISTS "translation_chunks_sessionId_idx" ON "translation_chunks"("sessionId")`.execute(db);
+      await sql`CREATE INDEX IF NOT EXISTS "translation_chunks_status_idx" ON "translation_chunks"("status")`.execute(db);
       await sql`CREATE UNIQUE INDEX IF NOT EXISTS "translation_chunks_sessionId_order_key" ON "translation_chunks"("sessionId", "order")`.execute(
         db
       );
@@ -175,9 +167,7 @@ export async function runMigrations(db: Kysely<Database>, logger?: (msg: string)
   const appliedVersions = await getAppliedVersions(db);
 
   // 미적용 마이그레이션 필터링 및 정렬
-  const pendingMigrations = MIGRATIONS.filter(m => !appliedVersions.has(m.version)).sort(
-    (a, b) => a.version - b.version
-  );
+  const pendingMigrations = MIGRATIONS.filter(m => !appliedVersions.has(m.version)).sort((a, b) => a.version - b.version);
 
   if (pendingMigrations.length === 0) {
     log('[Migration] All migrations are up to date');

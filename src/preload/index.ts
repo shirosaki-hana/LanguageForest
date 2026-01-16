@@ -49,10 +49,8 @@ const api: ElectronAPI = {
     update: (id: string, data: unknown) => ipcRenderer.invoke('sessions:update', id, data),
     delete: (id: string) => ipcRenderer.invoke('sessions:delete', id),
     getChunks: (id: string) => ipcRenderer.invoke('sessions:get-chunks', id),
-    getChunksPaginated: (id: string, options: unknown) =>
-      ipcRenderer.invoke('sessions:get-chunks-paginated', id, options),
-    uploadFile: (id: string, fileName: string, content: string) =>
-      ipcRenderer.invoke('sessions:upload-file', id, fileName, content),
+    getChunksPaginated: (id: string, options: unknown) => ipcRenderer.invoke('sessions:get-chunks-paginated', id, options),
+    uploadFile: (id: string, fileName: string, content: string) => ipcRenderer.invoke('sessions:upload-file', id, fileName, content),
     downloadTranslation: (id: string) => ipcRenderer.invoke('sessions:download-translation', id),
   },
 
@@ -60,19 +58,14 @@ const api: ElectronAPI = {
   // Translation
   // ============================================
   translation: {
-    start: (sessionId: string, sourceText: string) =>
-      ipcRenderer.invoke('translation:start', sessionId, sourceText),
-    translateAll: (sessionId: string, templateId: string) =>
-      ipcRenderer.invoke('translation:translate-all', sessionId, templateId),
+    start: (sessionId: string, sourceText: string) => ipcRenderer.invoke('translation:start', sessionId, sourceText),
+    translateAll: (sessionId: string, templateId: string) => ipcRenderer.invoke('translation:translate-all', sessionId, templateId),
     getProgress: (sessionId: string) => ipcRenderer.invoke('translation:get-progress', sessionId),
     getPartial: (sessionId: string) => ipcRenderer.invoke('translation:get-partial', sessionId),
-    retryChunk: (chunkId: string, templateId: string) =>
-      ipcRenderer.invoke('translation:retry-chunk', chunkId, templateId),
-    translateChunk: (chunkId: string, templateId: string) =>
-      ipcRenderer.invoke('translation:translate-chunk', chunkId, templateId),
+    retryChunk: (chunkId: string, templateId: string) => ipcRenderer.invoke('translation:retry-chunk', chunkId, templateId),
+    translateChunk: (chunkId: string, templateId: string) => ipcRenderer.invoke('translation:translate-chunk', chunkId, templateId),
     pause: (sessionId: string) => ipcRenderer.invoke('translation:pause', sessionId),
-    resume: (sessionId: string, templateId: string) =>
-      ipcRenderer.invoke('translation:resume', sessionId, templateId),
+    resume: (sessionId: string, templateId: string) => ipcRenderer.invoke('translation:resume', sessionId, templateId),
     subscribe: (sessionId: string) => ipcRenderer.invoke('translation:subscribe', sessionId),
     unsubscribe: (sessionId: string) => ipcRenderer.invoke('translation:unsubscribe', sessionId),
   },
