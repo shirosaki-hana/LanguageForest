@@ -2,6 +2,7 @@ import { z } from 'zod';
 import axios, { AxiosError } from 'axios';
 import { logger } from '../utils/log';
 import { getModelById, type ThinkingConfig } from '../config/models';
+import { db } from '../database/index';
 
 // ============================================
 // Gemini API 타입 정의 (Zod 스키마)
@@ -373,10 +374,9 @@ export class GeminiAPIError extends Error {
 let defaultClient: GeminiClient | null = null;
 
 /**
- * DB에서 API 키 가져오기 (순환 참조 방지를 위해 동적 import)
+ * DB에서 API 키 가져오기
  */
 async function getApiKeyFromDB(): Promise<string | null> {
-  const { db } = await import('../database/index');
   const settings = await db.selectFrom('app_settings').select('geminiApiKey').executeTakeFirst();
   return settings?.geminiApiKey ?? null;
 }
