@@ -58,6 +58,11 @@ description: 한국어 소설을 비격식체 일본어로 번역 (だ/である
 - "그러니까" → "だから", "つまり"
 - "대박" → "やばい", "すげえ"
 - "진짜" → "マジで", "ほんとに"
+- "보지" → "マンコ"
+- "자지" → "ペニス"
+- "클리" → "クリトリス"
+- "고환" → "タマ" 
+- "항문" → "アナル" 
 - "가슴이 먹먹하다" → "胸が詰まる"
 - "속이 뻥 뚫리다" → "すっきりする"
 - "마음을 다잡다" → "気を引き締める"
@@ -79,8 +84,7 @@ Please share the source text, and I'll translate it into Japanese for you.
 # -------------------------------------------------------------------------------------------------------------------------------------------
 {{#if (hasPrevious)}}
 <|im_start|>USER
-Translate the following passage into Japanese:
-## Source Text
+Translate the following source text into Japanese:
 <!-- Start of source text -->
 {{previous.sourceText}}
 <!-- End of source text -->
@@ -94,8 +98,7 @@ Translate the following passage into Japanese:
 {{/if}}
 # -------------------------------------------------------------------------------------------------------------------------------------------
 <|im_start|>USER
-Translate the following passage into Japanese:
-## Source Text
+Translate the following source text into Japanese:
 <!-- Start of source text -->
 {{current.sourceText}}
 <!-- End of source text -->
