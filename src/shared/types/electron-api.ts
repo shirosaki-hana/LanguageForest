@@ -71,7 +71,7 @@ export interface ElectronAPI {
       id: string,
       options: { page: number; limit: number; status?: string }
     ) => Promise<PaginatedChunksResponse>;
-    uploadFile: (id: string, filePath: string) => Promise<FileUploadResponse>;
+    uploadFile: (id: string, fileName: string, content: string) => Promise<FileUploadResponse>;
     downloadTranslation: (id: string) => Promise<{ fileName: string; content: string }>;
   };
 

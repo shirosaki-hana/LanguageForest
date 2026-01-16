@@ -102,13 +102,9 @@ export async function getSessionChunksPaginated(
 // ============================================
 
 export async function uploadFile(sessionId: string, file: File): Promise<FileUploadResponse> {
-  // Electron에서는 파일 경로를 직접 전달
-  // File 객체에서 path 속성 접근 (Electron 전용)
-  const filePath = (file as File & { path?: string }).path;
-  if (!filePath) {
-    throw new Error('File path not available. Use the native file dialog.');
-  }
-  return window.api.sessions.uploadFile(sessionId, filePath);
+  // 파일 내용을 직접 읽어서 main 프로세스로 전달
+  const content = await file.text();
+  return window.api.sessions.uploadFile(sessionId, file.name, content);
 }
 
 export async function downloadTranslation(sessionId: string): Promise<Blob> {

@@ -51,7 +51,8 @@ const api: ElectronAPI = {
     getChunks: (id: string) => ipcRenderer.invoke('sessions:get-chunks', id),
     getChunksPaginated: (id: string, options: unknown) =>
       ipcRenderer.invoke('sessions:get-chunks-paginated', id, options),
-    uploadFile: (id: string, filePath: string) => ipcRenderer.invoke('sessions:upload-file', id, filePath),
+    uploadFile: (id: string, fileName: string, content: string) =>
+      ipcRenderer.invoke('sessions:upload-file', id, fileName, content),
     downloadTranslation: (id: string) => ipcRenderer.invoke('sessions:download-translation', id),
   },
 

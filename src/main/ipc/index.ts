@@ -1,5 +1,4 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron';
-import { readFileSync } from 'fs';
 import {
   // Settings
   getAppSettings,
@@ -185,11 +184,7 @@ export function registerIpcHandlers(): void {
     }
   );
 
-  ipcMain.handle('sessions:upload-file', async (_event, sessionId: string, filePath: string) => {
-    // 파일 읽기
-    const content = readFileSync(filePath, 'utf-8');
-    const fileName = filePath.split(/[/\\]/).pop() || 'uploaded.txt';
-
+  ipcMain.handle('sessions:upload-file', async (_event, sessionId: string, fileName: string, content: string) => {
     return uploadFileAndChunk({
       sessionId,
       fileName,
