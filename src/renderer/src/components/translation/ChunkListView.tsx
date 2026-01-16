@@ -20,7 +20,7 @@ import {
   InputLabel,
   LinearProgress,
   Collapse,
-  alpha,
+  useTheme,
 } from '@mui/material';
 import {
   Refresh as RetryIcon,
@@ -87,6 +87,7 @@ interface ChunkRowProps {
 
 function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
 
   const previewLength = 100;
@@ -103,7 +104,7 @@ function ChunkRow({ chunk, isTranslating, onRetry, onTranslate }: ChunkRowProps)
         hover
         sx={{
           cursor: 'pointer',
-          bgcolor: chunk.status === 'processing' ? theme => alpha(theme.palette.primary.main, 0.05) : 'inherit',
+          bgcolor: chunk.status === 'processing' ? theme.custom.stateBackground.primary.light : 'inherit',
         }}
         onClick={() => setExpanded(!expanded)}
       >

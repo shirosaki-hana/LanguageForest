@@ -20,7 +20,6 @@ import {
   Drawer,
   useMediaQuery,
   useTheme,
-  alpha,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -106,6 +105,7 @@ interface SessionListItemProps {
 
 function SessionListItem({ session, selected, onSelect, onDelete, onEdit }: SessionListItemProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const config = statusConfig[session.status];
@@ -139,9 +139,9 @@ function SessionListItem({ session, selected, onSelect, onDelete, onEdit }: Sess
           borderRadius: 2,
           mb: 0.5,
           '&.Mui-selected': {
-            bgcolor: theme => alpha(theme.palette.primary.main, 0.12),
+            bgcolor: theme.custom.stateBackground.primary.medium,
             '&:hover': {
-              bgcolor: theme => alpha(theme.palette.primary.main, 0.18),
+              bgcolor: theme.custom.stateBackground.primary.strong,
             },
           },
         }}
@@ -302,7 +302,7 @@ function SidebarContent({
       <Divider />
 
       {/* 세션 목록 */}
-      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1 }}>
         {loading ? (
           // 로딩 스켈레톤
           [...Array(5)].map((_, i) => <Skeleton key={i} variant='rounded' height={56} sx={{ mb: 0.5, borderRadius: 2 }} />)
@@ -457,6 +457,7 @@ export default function SessionSidebar({
           '& .MuiDrawer-paper': {
             width: SIDEBAR_WIDTH,
             boxSizing: 'border-box',
+            overflowX: 'hidden',
           },
         }}
       >
@@ -484,6 +485,7 @@ export default function SessionSidebar({
           position: 'relative',
           borderRight: 1,
           borderColor: 'divider',
+          overflowX: 'hidden',
         },
       }}
     >

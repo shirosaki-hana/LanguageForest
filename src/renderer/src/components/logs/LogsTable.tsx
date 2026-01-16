@@ -12,7 +12,6 @@ import {
   TableRow,
   Typography,
   useTheme,
-  alpha,
 } from '@mui/material';
 import { ErrorOutline as ErrorIcon, Warning as WarningIcon, Info as InfoIcon, BugReport as DebugIcon } from '@mui/icons-material';
 import type { LogItem, LogLevel, LogCategory } from '@shared/types';
@@ -114,7 +113,7 @@ export default function LogsTable({
                       label={getCategoryLabel(log.category)}
                       size='small'
                       variant='filled'
-                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}
+                      sx={{ bgcolor: theme.custom.stateBackground.primary.light }}
                     />
                   </TableCell>
                   <TableCell>

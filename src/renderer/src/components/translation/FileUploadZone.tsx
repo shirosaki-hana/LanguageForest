@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Typography, Button, CircularProgress, alpha, Chip } from '@mui/material';
+import { Box, Paper, Typography, Button, CircularProgress, Chip, useTheme } from '@mui/material';
 import { CloudUpload as UploadIcon, InsertDriveFile as FileIcon, CheckCircle as SuccessIcon } from '@mui/icons-material';
 import type { TranslationSession } from '@shared/types';
 
@@ -21,6 +21,7 @@ interface FileUploadZoneProps {
 
 export default function FileUploadZone({ session, isUploading, onUpload, disabled = false }: FileUploadZoneProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const [isDragOver, setIsDragOver] = useState(false);
 
   // 파일이 있는지 확인: originalFileName이 있거나, sourceText가 있거나, 청크가 있는 경우
@@ -75,7 +76,7 @@ export default function FileUploadZone({ session, isUploading, onUpload, disable
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          bgcolor: theme => alpha(theme.palette.success.main, 0.05),
+          bgcolor: theme.custom.stateBackground.success.light,
           border: 1,
           borderColor: 'success.main',
           borderStyle: 'solid',
@@ -126,7 +127,7 @@ export default function FileUploadZone({ session, isUploading, onUpload, disable
         border: 2,
         borderStyle: 'dashed',
         borderColor: isDragOver ? 'primary.main' : 'divider',
-        bgcolor: isDragOver ? theme => alpha(theme.palette.primary.main, 0.05) : 'background.paper',
+        bgcolor: isDragOver ? theme.custom.stateBackground.primary.light : 'background.paper',
         transition: 'all 0.2s ease',
         cursor: disabled || isUploading ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -143,7 +144,7 @@ export default function FileUploadZone({ session, isUploading, onUpload, disable
             sx={{
               p: 2,
               borderRadius: '50%',
-              bgcolor: theme => alpha(theme.palette.primary.main, 0.1),
+              bgcolor: theme.custom.stateBackground.primary.light,
             }}
           >
             <UploadIcon sx={{ fontSize: 48, color: 'primary.main' }} />

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Typography, TextField, IconButton, Tooltip, Chip, alpha } from '@mui/material';
+import { Box, Paper, Typography, TextField, IconButton, Tooltip, Chip, useTheme } from '@mui/material';
 import { ContentCopy as CopyIcon, SwapHoriz as SwapIcon } from '@mui/icons-material';
 import type { TranslationChunk } from '@shared/types';
 import { snackbar } from '../../stores/snackbarStore';
@@ -89,6 +89,7 @@ export default function TranslationEditor({
   readonly = false,
 }: TranslationEditorProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   // 번역문 조립
   const translatedText = useMemo(() => {
@@ -201,7 +202,7 @@ export default function TranslationEditor({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          bgcolor: theme => alpha(theme.palette.success.main, 0.03),
+          bgcolor: theme.custom.stateBackground.success.subtle,
         }}
       >
         <EditorHeader

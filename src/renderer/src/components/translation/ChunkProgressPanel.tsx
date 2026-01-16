@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Box, Paper, Typography, LinearProgress, Tooltip, IconButton, Chip, alpha, keyframes } from '@mui/material';
+import { Box, Paper, Typography, LinearProgress, Tooltip, IconButton, Chip, keyframes, useTheme } from '@mui/material';
 import {
   CheckCircle as CompleteIcon,
   Error as ErrorIcon,
@@ -45,6 +45,7 @@ interface ChunkIconProps {
 
 function ChunkIcon({ chunk, onRetry }: ChunkIconProps) {
   const { t } = useTranslation();
+  const theme = useTheme();
 
   const getIcon = () => {
     switch (chunk.status) {
@@ -59,7 +60,7 @@ function ChunkIcon({ chunk, onRetry }: ChunkIconProps) {
               sx={{
                 p: 0.25,
                 color: 'error.main',
-                '&:hover': { bgcolor: alpha('#ef4444', 0.1) },
+                '&:hover': { bgcolor: theme.custom.stateBackground.error.light },
               }}
             >
               <ErrorIcon fontSize='small' />
@@ -95,6 +96,20 @@ function ChunkIcon({ chunk, onRetry }: ChunkIconProps) {
     return baseInfo;
   };
 
+  // 상태별 배경색 결정
+  const getBgColor = () => {
+    switch (chunk.status) {
+      case 'completed':
+        return theme.custom.stateBackground.success.light;
+      case 'failed':
+        return theme.custom.stateBackground.error.light;
+      case 'processing':
+        return theme.custom.stateBackground.primary.light;
+      default:
+        return 'action.hover';
+    }
+  };
+
   return (
     <Tooltip title={getTooltip()} arrow>
       <Box
@@ -105,12 +120,7 @@ function ChunkIcon({ chunk, onRetry }: ChunkIconProps) {
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 1,
-          bgcolor: theme => {
-            if (chunk.status === 'completed') return alpha(theme.palette.success.main, 0.1);
-            if (chunk.status === 'failed') return alpha(theme.palette.error.main, 0.1);
-            if (chunk.status === 'processing') return alpha(theme.palette.primary.main, 0.1);
-            return 'action.hover';
-          },
+          bgcolor: getBgColor(),
           animation: chunk.status === 'processing' ? `${pulseAnimation} 1.5s ease-in-out infinite` : 'none',
         }}
       >
@@ -191,7 +201,7 @@ export default function ChunkProgressPanel({ chunks, progress, onRetryChunk }: C
             bgcolor: 'action.hover',
             '& .MuiLinearProgress-bar': {
               borderRadius: 4,
-              background: theme => `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.success.main})`,
+              background: theme => theme.custom.gradient.progress,
             },
           }}
         />
